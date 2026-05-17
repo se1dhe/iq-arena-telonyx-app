@@ -5,9 +5,7 @@
     color: #f7f8ff;
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -24,9 +22,7 @@ body {
     padding: 28px 18px 40px;
 }
 
-.hero {
-    padding: 24px 0;
-}
+.hero { padding: 24px 0; }
 
 .badge {
     display: inline-flex;
@@ -44,10 +40,7 @@ h1 {
     line-height: 1;
 }
 
-p {
-    margin: 0;
-    color: rgba(247, 248, 255, 0.72);
-}
+p { margin: 0; color: rgba(247, 248, 255, 0.72); }
 
 .card, .rules {
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -67,6 +60,89 @@ p {
     margin-bottom: 14px;
 }
 
+.scoreboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.score-card {
+    padding: 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.score-name {
+    font-size: 12px;
+    color: rgba(247, 248, 255, 0.66);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.score-value {
+    margin-top: 4px;
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.question-box {
+    margin-top: 14px;
+    padding: 16px;
+    border-radius: 22px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.round-label {
+    color: #7df9ff;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.question-box h2 {
+    font-size: 22px;
+    line-height: 1.18;
+    margin: 12px 0;
+}
+
+.timer {
+    display: inline-flex;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(125, 249, 255, 0.12);
+    color: #7df9ff;
+    font-weight: 900;
+    margin-bottom: 12px;
+}
+
+.answers {
+    display: grid;
+    gap: 10px;
+}
+
+.answer-btn {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.12);
+    color: #f7f8ff;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.answer-btn:disabled {
+    opacity: 0.72;
+}
+
+.answer-correct {
+    background: rgba(68, 255, 157, 0.20);
+    border-color: rgba(68, 255, 157, 0.44);
+}
+
+.answer-wrong {
+    background: rgba(255, 82, 120, 0.20);
+    border-color: rgba(255, 82, 120, 0.44);
+}
+
 button {
     width: 100%;
     border: 0;
@@ -77,25 +153,10 @@ button {
     font-weight: 800;
 }
 
-.primary {
-    background: linear-gradient(135deg, #7df9ff, #8a5cff);
-    color: #05060b;
-}
+.primary { background: linear-gradient(135deg, #7df9ff, #8a5cff); color: #05060b; }
+.secondary { background: rgba(255, 255, 255, 0.12); color: #f7f8ff; }
+.hidden { display: none; }
 
-.secondary {
-    background: rgba(255, 255, 255, 0.12);
-    color: #f7f8ff;
-}
-
-.rules {
-    margin-top: 16px;
-}
-
-.rules h2 {
-    margin-top: 0;
-}
-
-.rules li {
-    margin: 8px 0;
-    color: rgba(247, 248, 255, 0.76);
-}
+.rules { margin-top: 16px; }
+.rules h2 { margin-top: 0; }
+.rules li { margin: 8px 0; color: rgba(247, 248, 255, 0.76); }
