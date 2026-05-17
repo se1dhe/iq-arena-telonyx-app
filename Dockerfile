@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml .
@@ -14,4 +14,3 @@ COPY --from=build /workspace/target/iq-arena-telonyx-app-0.1.0-SNAPSHOT.jar app.
 
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
-
