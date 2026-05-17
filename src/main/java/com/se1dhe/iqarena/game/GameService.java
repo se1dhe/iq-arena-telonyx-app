@@ -2,16 +2,18 @@ package com.se1dhe.iqarena.game;
 
 import com.se1dhe.iqarena.domain.Player;
 import com.se1dhe.iqarena.domain.Question;
-import com.se1dhe.iqarena.question.QuestionRepository;
+import com.se1dhe.iqarena.repo.QuestionRepository;
 import com.se1dhe.iqarena.realtime.WsSender;
 import com.se1dhe.iqarena.repo.PlayerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 // Server-authoritative game engine для MVP 1v1.
 @Service
@@ -24,6 +26,10 @@ public class GameService {
     private final QuestionRepository questionRepository;
     private final ScoringService scoringService;
     private final WsSender wsSender;
+    private final TaskScheduler taskScheduler;
+
+    // Защита от двойного reveal, когда оба игрока ответили почти одновременно или сработал timer.
+    private final Set<String> revealedRounds = ConcurrentHashMap.newKeySet();
 
     @Value("${app.game.rounds:5}")
     private int rounds;
@@ -65,6 +71,10 @@ public class GameService {
         if (!isParticipant(match, playerId)) {
             throw new IllegalArgumentException("Игрок не является участником матча");
         }
+        if (revealedRounds.contains(roundKey(matchId, roundIndex))) {
+            wsSender.sendToPlayer(playerId, "answer.rejected", Map.of("reason", "round_already_revealed"));
+            return;
+        }
         if (answerRepository.existsByMatchIdAndRoundIndexAndPlayerId(matchId, roundIndex, playerId)) {
             wsSender.sendToPlayer(playerId, "answer.rejected", Map.of("reason", "already_answered"));
             return;
@@ -93,13 +103,17 @@ public class GameService {
         ));
 
         if (answerRepository.findByMatchIdAndRoundIndex(matchId, roundIndex).size() >= 2) {
-            revealRound(matchId, roundIndex);
+            revealRound(matchId, roundIndex, "both_answered");
         }
     }
 
     @Transactional
     public void openRound(UUID matchId, int roundIndex) {
         MatchEntity match = matchRepository.findById(matchId).orElseThrow();
+        if (match.getState() == MatchState.match_complete) {
+            return;
+        }
+
         List<Question> questions = questionRepository.pickRandomApproved("ru-RU", 1);
         if (questions.isEmpty()) {
             throw new IllegalStateException("Нет вопросов для матча");
@@ -132,16 +146,38 @@ public class GameService {
                 "deadlineAt", deadlineAt.toString()
         );
         sendBoth(match, "round.open", payload);
+
+        taskScheduler.schedule(() -> revealRoundSafe(matchId, roundIndex), deadlineAt.plusMillis(250));
     }
 
     @Transactional
     public void revealRound(UUID matchId, int roundIndex) {
+        revealRound(matchId, roundIndex, "manual");
+    }
+
+    @Transactional
+    public void revealRound(UUID matchId, int roundIndex, String reason) {
+        String key = roundKey(matchId, roundIndex);
+        if (!revealedRounds.add(key)) {
+            return;
+        }
+
         MatchEntity match = matchRepository.findById(matchId).orElseThrow();
+        if (match.getState() == MatchState.match_complete) {
+            return;
+        }
+
         MatchRoundEntity round = roundRepository.findByMatchIdAndRoundIndex(matchId, roundIndex).orElseThrow();
         List<MatchAnswerEntity> answers = answerRepository.findByMatchIdAndRoundIndex(matchId, roundIndex);
 
-        int onePoints = answers.stream().filter(a -> a.getPlayer().getId().equals(match.getPlayerOne().getId())).mapToInt(MatchAnswerEntity::getPoints).sum();
-        int twoPoints = answers.stream().filter(a -> a.getPlayer().getId().equals(match.getPlayerTwo().getId())).mapToInt(MatchAnswerEntity::getPoints).sum();
+        int onePoints = answers.stream()
+                .filter(a -> a.getPlayer().getId().equals(match.getPlayerOne().getId()))
+                .mapToInt(MatchAnswerEntity::getPoints)
+                .sum();
+        int twoPoints = answers.stream()
+                .filter(a -> a.getPlayer().getId().equals(match.getPlayerTwo().getId()))
+                .mapToInt(MatchAnswerEntity::getPoints)
+                .sum();
 
         match.setPlayerOneScore(match.getPlayerOneScore() + onePoints);
         match.setPlayerTwoScore(match.getPlayerTwoScore() + twoPoints);
@@ -150,8 +186,10 @@ public class GameService {
         sendBoth(match, "round.reveal", Map.of(
                 "matchId", matchId.toString(),
                 "round", roundIndex,
+                "reason", reason,
                 "correctIndex", round.getCorrectIndex(),
                 "explanation", round.getQuestion().getExplanation(),
+                "answers", answers.stream().map(this::answerPayload).toList(),
                 "scoreboard", scoreboard(match)
         ));
 
@@ -184,6 +222,18 @@ public class GameService {
         ));
     }
 
+    private void revealRoundSafe(UUID matchId, int roundIndex) {
+        try {
+            revealRound(matchId, roundIndex, "timeout");
+        } catch (Exception ignored) {
+            // MVP: не валим scheduler из-за отдельного матча.
+        }
+    }
+
+    private String roundKey(UUID matchId, int roundIndex) {
+        return matchId + ":" + roundIndex;
+    }
+
     private void sendBoth(MatchEntity match, String type, Object payload) {
         wsSender.sendToPlayer(match.getPlayerOne().getId(), type, payload);
         wsSender.sendToPlayer(match.getPlayerTwo().getId(), type, payload);
@@ -195,6 +245,16 @@ public class GameService {
 
     private Map<String, Object> playerPayload(Player player) {
         return Map.of("playerId", player.getId().toString(), "displayName", player.getDisplayName(), "avatarId", player.getAvatarId());
+    }
+
+    private Map<String, Object> answerPayload(MatchAnswerEntity answer) {
+        return Map.of(
+                "playerId", answer.getPlayer().getId().toString(),
+                "selectedIndex", answer.getSelectedIndex(),
+                "correct", answer.isCorrect(),
+                "responseMs", answer.getResponseMs(),
+                "points", answer.getPoints()
+        );
     }
 
     private List<Map<String, Object>> scoreboard(MatchEntity match) {
