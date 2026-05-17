@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IQ Arena</title>
+    <link rel="stylesheet" href="/app/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div class="page">
+    <header class="hero">
+        <div class="badge">TELONYX</div>
+        <h1>IQ Arena</h1>
+        <p>Быстрая PvP-викторина 1v1 прямо в Telegram.</p>
+    </header>
+
+    <main class="card">
+        <div id="status" class="status">Готовим арену...</div>
+        <button id="playBtn" class="primary">Найти соперника</button>
+        <button id="profileBtn" class="secondary">Профиль</button>
+    </main>
+
+    <section class="rules">
+        <h2>Правила MVP</h2>
+        <ul>
+            <li>5 вопросов</li>
+            <li>10 секунд на ответ</li>
+            <li>правильный и быстрый ответ дает больше очков</li>
+            <li>рейтинг обновляется после матча</li>
+        </ul>
+    </section>
+</div>
+<script src="/app/app.js"></script>
+</body>
+</html>
