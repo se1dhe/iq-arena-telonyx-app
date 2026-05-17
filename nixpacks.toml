@@ -1,0 +1,6 @@
+[variables]
+NIXPACKS_JDK_VERSION = "21"
+
+[phases.build]
+cmds = ["mvn -DskipTests clean package"]
+
