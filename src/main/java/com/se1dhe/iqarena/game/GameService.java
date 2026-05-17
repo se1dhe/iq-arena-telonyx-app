@@ -5,6 +5,7 @@ import com.se1dhe.iqarena.domain.Question;
 import com.se1dhe.iqarena.repo.QuestionRepository;
 import com.se1dhe.iqarena.realtime.WsSender;
 import com.se1dhe.iqarena.repo.PlayerRepository;
+import com.se1dhe.iqarena.rating.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
@@ -25,6 +26,7 @@ public class GameService {
     private final PlayerRepository playerRepository;
     private final QuestionRepository questionRepository;
     private final ScoringService scoringService;
+    private final RatingService ratingService;
     private final WsSender wsSender;
     private final TaskScheduler taskScheduler;
 
@@ -203,6 +205,9 @@ public class GameService {
     @Transactional
     public void completeMatch(UUID matchId) {
         MatchEntity match = matchRepository.findById(matchId).orElseThrow();
+        if (match.getState() == MatchState.match_complete) {
+            return;
+        }
         UUID winnerId = null;
         if (match.getPlayerOneScore() > match.getPlayerTwoScore()) {
             match.setWinnerPlayer(match.getPlayerOne());
@@ -215,10 +220,16 @@ public class GameService {
         match.setCompletedAt(Instant.now());
         matchRepository.save(match);
 
+        List<Map<String, Object>> ratingUpdates = ratingService.updateAfterMatch(match);
+
         sendBoth(match, "match.result", Map.of(
                 "matchId", matchId.toString(),
                 "winnerPlayerId", winnerId == null ? "" : winnerId.toString(),
                 "scoreboard", scoreboard(match)
+        ));
+        sendBoth(match, "rating.updated", Map.of(
+                "matchId", matchId.toString(),
+                "ratings", ratingUpdates
         ));
     }
 

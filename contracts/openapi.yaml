@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: IQ Arena API
+  version: 0.1.0
+paths:
+  /v1/auth/dev/login:
+    post:
+      summary: Local development login
+      responses:
+        "200":
+          description: Access token and player profile
+  /v1/auth/telegram/webapp:
+    post:
+      summary: Telegram Web App initData login
+      responses:
+        "200":
+          description: Access token and player profile
+  /v1/me:
+    get:
+      summary: Current player profile
+      responses:
+        "200":
+          description: Current profile
+    patch:
+      summary: Update current player profile
+      responses:
+        "200":
+          description: Updated profile
+    delete:
+      summary: Mark current account as deleted
+      responses:
+        "204":
+          description: Account deletion initiated
+  /v1/realtime/session:
+    post:
+      summary: Issue a short-lived WebSocket ticket
+      responses:
+        "200":
+          description: WebSocket ticket
+  /v1/leaderboards/global:
+    get:
+      summary: Global ranked leaderboard
+      responses:
+        "200":
+          description: Leaderboard rows
+  /v1/questions/report:
+    post:
+      summary: Report a bad question
+      responses:
+        "202":
+          description: Report accepted
+

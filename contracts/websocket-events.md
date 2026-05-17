@@ -35,3 +35,7 @@
 ```json
 {"type":"round.reveal","payload":{"correctIndex":0,"explanation":"..."}}
 ```
+
+```json
+{"type":"rating.updated","payload":{"matchId":"uuid","ratings":[{"playerId":"uuid","oldRating":1500,"newRating":1516,"delta":16}]}}
+```

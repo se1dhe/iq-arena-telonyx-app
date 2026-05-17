@@ -1,0 +1,36 @@
+asyncapi: 3.0.0
+info:
+  title: IQ Arena Realtime API
+  version: 0.1.0
+channels:
+  arenaWs:
+    address: /ws
+    messages:
+      welcome:
+        $ref: "#/components/messages/Welcome"
+      queueStatus:
+        $ref: "#/components/messages/QueueStatus"
+      roundOpen:
+        $ref: "#/components/messages/RoundOpen"
+      roundReveal:
+        $ref: "#/components/messages/RoundReveal"
+      matchResult:
+        $ref: "#/components/messages/MatchResult"
+components:
+  messages:
+    Welcome:
+      payload:
+        type: object
+    QueueStatus:
+      payload:
+        type: object
+    RoundOpen:
+      payload:
+        type: object
+    RoundReveal:
+      payload:
+        type: object
+    MatchResult:
+      payload:
+        type: object
+

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iqarena.local/contracts/schemas/rating.schema.json",
+  "title": "Rating",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["playerId", "mode", "seasonId", "rating", "rd", "sigma", "gamesPlayed", "lastRatedAt"],
+  "properties": {
+    "playerId": { "type": "string", "format": "uuid" },
+    "mode": { "type": "string", "enum": ["ranked_duel"] },
+    "seasonId": { "type": "string" },
+    "rating": { "type": "number" },
+    "rd": { "type": "number", "minimum": 0 },
+    "sigma": { "type": "number", "minimum": 0 },
+    "gamesPlayed": { "type": "integer", "minimum": 0 },
+    "lastRatedAt": { "type": "string", "format": "date-time" }
+  }
+}
+

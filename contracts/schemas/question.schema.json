@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iqarena.local/contracts/schemas/question.schema.json",
+  "title": "Question",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "locale", "category", "difficulty", "status", "prompt", "options", "correctIndex", "explanation"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "locale": { "type": "string" },
+    "category": { "type": "string" },
+    "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+    "status": { "type": "string", "enum": ["draft", "approved", "quarantined", "retired", "rejected"] },
+    "prompt": { "type": "string", "minLength": 10, "maxLength": 300 },
+    "options": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+      "uniqueItems": true
+    },
+    "correctIndex": { "type": "integer", "minimum": 0, "maximum": 3 },
+    "explanation": { "type": "string", "minLength": 1, "maxLength": 500 }
+  }
+}
+

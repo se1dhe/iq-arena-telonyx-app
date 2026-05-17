@@ -61,7 +61,10 @@ async function connectRealtime() {
     }
 
     playBtn.disabled = true;
-    const ticketResponse = await fetch(`/v1/realtime/session/dev/${player.playerId}`, { method: 'POST' });
+    const ticketResponse = await fetch('/v1/realtime/session', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
     const ticketData = await ticketResponse.json();
 
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -112,6 +115,10 @@ function handleWsMessage(message) {
     }
     if (message.type === 'match.result') {
         onMatchResult(message.payload);
+        return;
+    }
+    if (message.type === 'rating.updated') {
+        console.log('rating.updated', message.payload);
         return;
     }
     if (message.type === 'error') {

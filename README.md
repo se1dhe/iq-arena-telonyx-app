@@ -99,3 +99,30 @@ ws://localhost:8080/ws?ticket=<WS_TICKET>
 4. Реализовать полноценный matchmaking на Redis.
 5. Реализовать match engine: 5 раундов, answers, reveal, result.
 6. Добавить frontend Telegram Web App.
+
+## Документация и контракты
+
+- `docs/README.md`
+- `docs/game/ranked-duel-rules.md`
+- `docs/game/scoring-and-tiebreaks.md`
+- `contracts/websocket-events.md`
+- `contracts/openapi.yaml`
+- `contracts/asyncapi.yaml`
+
+## Railway deploy
+
+Railway deploys this app from GitHub using `railway.json`.
+
+Required service variables:
+
+- `APP_JWT_SECRET`
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `SPRING_DATA_REDIS_HOST`
+- `SPRING_DATA_REDIS_PORT`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_BOT_USERNAME`
+- `TELEGRAM_WEBAPP_URL`
+- `APP_PUBLIC_BASE_URL`
+- `APP_WEBAPP_URL`

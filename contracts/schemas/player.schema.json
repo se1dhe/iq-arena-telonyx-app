@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iqarena.local/contracts/schemas/player.schema.json",
+  "title": "Player",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "handle", "displayName", "avatarId", "locale", "status"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "handle": { "type": "string", "pattern": "^[a-zA-Z0-9_]{3,24}$" },
+    "displayName": { "type": "string", "minLength": 3, "maxLength": 24 },
+    "avatarId": { "type": "string" },
+    "locale": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "shadow_flagged", "suspended", "deleted"] }
+  }
+}
+
