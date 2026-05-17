@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: iqarena
+      POSTGRES_USER: iqarena
+      POSTGRES_PASSWORD: iqarena
+    ports:
+      - "5432:5432"
+    volumes:
+      - iqarena_postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  iqarena_postgres:
