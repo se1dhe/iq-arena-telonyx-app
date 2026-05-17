@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
+                                "/app",
                                 "/app/**",
                                 "/ws",
                                 "/actuator/health",
