@@ -1,9 +1,25 @@
 const tg = window.Telegram?.WebApp;
+
+const views = {
+    arena: document.getElementById('arenaView'),
+    leaderboard: document.getElementById('leaderboardView'),
+    profile: document.getElementById('profileView')
+};
+
+const tabs = {
+    arena: document.getElementById('arenaTab'),
+    leaderboard: document.getElementById('leaderboardTab'),
+    profile: document.getElementById('profileTab')
+};
+
 const statusEl = document.getElementById('status');
 const playBtn = document.getElementById('playBtn');
-const arenaTab = document.getElementById('arenaTab');
-const leaderboardTab = document.getElementById('leaderboardTab');
-const profileTab = document.getElementById('profileTab');
+const ratingValue = document.getElementById('ratingValue');
+const winsValue = document.getElementById('winsValue');
+const winrateValue = document.getElementById('winrateValue');
+const streakValue = document.getElementById('streakValue');
+const rankCrest = document.getElementById('rankCrest');
+const playerCardName = document.getElementById('playerCardName');
 const ratingLine = document.getElementById('ratingLine');
 const scoreboardEl = document.getElementById('scoreboard');
 const questionBox = document.getElementById('questionBox');
@@ -12,12 +28,30 @@ const questionText = document.getElementById('questionText');
 const timerEl = document.getElementById('timer');
 const answersEl = document.getElementById('answers');
 const explanationEl = document.getElementById('explanation');
-const leaderboardPanel = document.getElementById('leaderboardPanel');
+const categoryRail = document.getElementById('categoryRail');
 const leaderboardList = document.getElementById('leaderboardList');
-const profilePanel = document.getElementById('profilePanel');
+const profileAvatar = document.getElementById('profileAvatar');
 const profileName = document.getElementById('profileName');
 const profileHandle = document.getElementById('profileHandle');
 const profileReferral = document.getElementById('profileReferral');
+const profileCategory = document.getElementById('profileCategory');
+const leaderboardPreview = document.getElementById('leaderboardPreview');
+const profilePreviewAvatar = document.getElementById('profilePreviewAvatar');
+const profilePreviewName = document.getElementById('profilePreviewName');
+const profilePreviewTitle = document.getElementById('profilePreviewTitle');
+const rankProgress = document.getElementById('rankProgress');
+const rankProgressText = document.getElementById('rankProgressText');
+
+const categories = [
+    { id: 'mixed', label: 'Общие знания', hint: 'микс', icon: 'Π' },
+    { id: 'geography', label: 'География', hint: 'карта', icon: '◎' },
+    { id: 'science', label: 'Наука', hint: 'факты', icon: '✶' },
+    { id: 'history', label: 'История', hint: 'эпохи', icon: '▥' },
+    { id: 'it', label: 'IT', hint: 'код', icon: '{}' },
+    { id: 'sports', label: 'Спорт', hint: 'скорость', icon: 'Σ' }
+];
+
+const categoryNames = new Map(categories.map(category => [category.id, category.label]));
 
 let accessToken = null;
 let player = null;
@@ -28,7 +62,7 @@ let currentDeadline = null;
 let timerInterval = null;
 let playersById = new Map();
 let selectedAnswer = null;
-let activeView = 'arena';
+let selectedCategory = 'mixed';
 
 function setStatus(text) {
     statusEl.textContent = text;
@@ -38,13 +72,32 @@ function setHidden(el, hidden) {
     el.classList.toggle('hidden', hidden);
 }
 
+function renderCategories() {
+    categoryRail.innerHTML = categories.map(category => `
+        <button class="category-pill ${category.id === selectedCategory ? 'selected' : ''}" type="button" data-category="${category.id}">
+            <i aria-hidden="true">${category.icon}</i>
+            <strong>${category.label}</strong>
+        </button>
+    `).join('');
+
+    categoryRail.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+            selectedCategory = button.dataset.category;
+            profileCategory.textContent = categoryNames.get(selectedCategory);
+            renderCategories();
+        });
+    });
+}
+
 async function telegramLogin() {
     tg?.ready();
     tg?.expand();
 
     const initData = tg?.initData || '';
     if (!initData) {
-        setStatus('Открыто не из Telegram. Используется dev-режим интерфейса.');
+        setStatus('Откройте арену из Telegram, чтобы войти в рейтинг.');
+        renderProfile();
+        await loadLeaderboard();
         return;
     }
 
@@ -55,7 +108,7 @@ async function telegramLogin() {
     });
 
     if (!response.ok) {
-        setStatus('Ошибка авторизации Telegram Web App.');
+        setStatus('Telegram авторизация не прошла. Обновите WebApp.');
         return;
     }
 
@@ -64,49 +117,60 @@ async function telegramLogin() {
     player = data;
     renderProfile();
     await loadLeaderboard();
-    setStatus(`Привет, ${data.displayName}. Готов к дуэли?`);
+    setStatus(`${data.displayName}, категория выбрана. Время забрать матч.`);
 }
 
 async function connectRealtime() {
     showView('arena');
     if (!accessToken || !player) {
-        setStatus('Сначала нужна авторизация Telegram Web App.');
+        setStatus('Войдите через Telegram WebApp, затем начните матч.');
         return;
     }
 
     resetArena();
     playBtn.disabled = true;
+    playBtn.querySelector('span').textContent = 'Синхронизация';
+
     const ticketResponse = await fetch('/v1/realtime/session', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}` }
     });
-    const ticketData = await ticketResponse.json();
 
+    if (!ticketResponse.ok) {
+        playBtn.disabled = false;
+        playBtn.querySelector('span').textContent = 'Найти матч';
+        setStatus('Не удалось открыть realtime-сессию.');
+        return;
+    }
+
+    const ticketData = await ticketResponse.json();
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
     socket = new WebSocket(`${protocol}://${location.host}/ws?ticket=${ticketData.wsTicket}`);
 
     socket.onopen = () => {
-        setStatus('Ищем соперника...');
-        playBtn.textContent = 'Поиск...';
-        socket.send(JSON.stringify({ type: 'queue.join', payload: { mode: 'ranked_duel' } }));
+        setStatus(`Ищем соперника: ${categoryNames.get(selectedCategory)}.`);
+        playBtn.querySelector('span').textContent = 'Поиск матча';
+        socket.send(JSON.stringify({
+            type: 'queue.join',
+            payload: { mode: 'ranked_duel', category: selectedCategory }
+        }));
     };
 
     socket.onmessage = (event) => handleWsMessage(JSON.parse(event.data));
     socket.onclose = () => {
         playBtn.disabled = false;
-        playBtn.textContent = currentMatchId ? 'Играть еще раз' : 'Найти соперника';
-        setStatus('Realtime соединение закрыто.');
+        playBtn.querySelector('span').textContent = currentMatchId ? 'Играть еще раз' : 'Найти матч';
         stopTimer();
     };
 }
 
 function handleWsMessage(message) {
     if (message.type === 'welcome') {
-        console.log('WS welcome', message.payload);
         return;
     }
     if (message.type === 'queue.status') {
-        setStatus(message.payload.status === 'idle' ? 'Поиск остановлен.' : 'Ты в очереди. Если соперника нет, подключим тренировочного.');
+        const category = categoryNames.get(message.payload.category || selectedCategory);
+        setStatus(message.payload.status === 'idle' ? 'Поиск остановлен.' : `Очередь активна. ${category}: готовим дуэль.`);
         return;
     }
     if (message.type === 'match.found') {
@@ -118,7 +182,7 @@ function handleWsMessage(message) {
         return;
     }
     if (message.type === 'answer.accepted') {
-        setStatus(`Ответ принят. +${message.payload.points} очков.`);
+        setStatus(`Ответ принят. Текущий раунд: +${message.payload.points}.`);
         lockAnswers();
         return;
     }
@@ -140,16 +204,17 @@ function handleWsMessage(message) {
     }
     if (message.type === 'error') {
         setStatus(message.payload.message || 'Ошибка WebSocket.');
-        return;
     }
-    console.log('WS event', message);
 }
 
 function onMatchFound(payload) {
     currentMatchId = payload.matchId;
     playersById = new Map(payload.players.map(p => [p.playerId, p]));
+    selectedCategory = payload.category || selectedCategory;
+    renderCategories();
     setHidden(ratingLine, true);
-    setStatus('Соперник найден. Матч начинается!');
+    setStatus('Соперник найден. Арена открыта.');
+    playBtn.classList.add('hidden');
     setHidden(scoreboardEl, false);
     renderScoreboard(payload.players.map(p => ({ playerId: p.playerId, score: 0 })));
 }
@@ -158,18 +223,19 @@ function onRoundOpen(payload) {
     currentRound = payload.round;
     currentDeadline = new Date(payload.deadlineAt).getTime();
     selectedAnswer = null;
-    setStatus(`Раунд ${payload.round}. Выбери ответ быстрее соперника.`);
+    setStatus('Раунд открыт. Один ответ, один шанс.');
     setHidden(explanationEl, true);
     explanationEl.textContent = '';
     setHidden(questionBox, false);
-    roundLabel.textContent = `Раунд ${payload.round} · ${payload.category}`;
+    roundLabel.textContent = `Раунд ${payload.round}`;
     questionText.textContent = payload.prompt;
     answersEl.innerHTML = '';
 
     payload.options.forEach((option, index) => {
         const button = document.createElement('button');
         button.className = 'answer-btn';
-        button.textContent = option;
+        button.type = 'button';
+        button.innerHTML = `<span>${String.fromCharCode(65 + index)}</span><strong>${escapeHtml(option)}</strong>`;
         button.addEventListener('click', () => sendAnswer(index));
         answersEl.appendChild(button);
     });
@@ -198,7 +264,8 @@ function sendAnswer(index) {
 
 function onRoundReveal(payload) {
     stopTimer();
-    setStatus(payload.reason === 'timeout' ? 'Время вышло. Показываем ответ.' : 'Раунд завершен.');
+    timerEl.textContent = '0';
+    setStatus(payload.reason === 'timeout' ? 'Время вышло. Сервер раскрыл ответ.' : 'Раунд раскрыт. Следующий через мгновение.');
 
     [...answersEl.children].forEach((button, index) => {
         button.disabled = true;
@@ -220,12 +287,13 @@ function onMatchResult(payload) {
     stopTimer();
     renderScoreboard(payload.scoreboard);
     playBtn.disabled = false;
-    playBtn.textContent = 'Играть еще раз';
+    playBtn.querySelector('span').textContent = 'Играть еще раз';
+    playBtn.classList.remove('hidden');
 
     if (!payload.winnerPlayerId) {
-        setStatus('Ничья. Жесткая дуэль!');
+        setStatus('Ничья. Все тай-брейки равны.');
     } else if (payload.winnerPlayerId === player.playerId) {
-        setStatus(`Победа! ${tiebreakText(payload.tiebreak)}`);
+        setStatus(`Победа. ${tiebreakText(payload.tiebreak)}`);
     } else {
         setStatus(`Поражение. ${tiebreakText(payload.tiebreak)} Реванш?`);
     }
@@ -233,15 +301,9 @@ function onMatchResult(payload) {
 }
 
 function tiebreakText(reason) {
-    if (reason === 'correct_count') {
-        return 'Решило число правильных ответов.';
-    }
-    if (reason === 'correct_response_ms') {
-        return 'Решила суммарная скорость правильных ответов.';
-    }
-    if (reason === 'draw') {
-        return 'Все тай-брейки равны.';
-    }
+    if (reason === 'correct_count') return 'Решило число правильных ответов.';
+    if (reason === 'correct_response_ms') return 'Решила суммарная скорость правильных ответов.';
+    if (reason === 'draw') return 'Все тай-брейки равны.';
     return 'Решили очки за матч.';
 }
 
@@ -251,6 +313,8 @@ function resetArena() {
     currentDeadline = null;
     selectedAnswer = null;
     playersById = new Map();
+    timerEl.textContent = '10';
+    playBtn.classList.remove('hidden');
     setHidden(scoreboardEl, true);
     setHidden(questionBox, true);
     setHidden(ratingLine, true);
@@ -262,30 +326,45 @@ function resetArena() {
 
 function onRatingUpdated(payload) {
     const row = payload.ratings?.find(r => r.playerId === player?.playerId);
-    if (!row) {
-        return;
-    }
+    if (!row) return;
+
     const sign = row.delta > 0 ? '+' : '';
-    ratingLine.textContent = `Рейтинг ${row.newRating} (${sign}${row.delta}) · игр: ${row.gamesPlayed}`;
+    ratingValue.textContent = row.newRating;
+    ratingLine.textContent = `IQ ${row.newRating} · ${sign}${row.delta} · ${row.gamesPlayed} игр`;
     setHidden(ratingLine, false);
 }
 
 function renderScoreboard(scoreboard) {
-    scoreboardEl.innerHTML = '';
-    scoreboard.forEach(row => {
+    const rows = scoreboard.slice(0, 2).map((row, index) => {
         const p = playersById.get(row.playerId) || { displayName: row.playerId };
-        const card = document.createElement('div');
-        card.className = 'score-card';
-        card.innerHTML = `<div class="score-name">${escapeHtml(p.displayName)}</div><div class="score-value">${row.score}</div>`;
-        scoreboardEl.appendChild(card);
+        return { ...row, name: p.displayName, rank: index === 0 ? 'IV' : 'III' };
     });
+    const [left, right] = rows;
+    if (!left || !right) return;
+    scoreboardEl.innerHTML = `
+        <div class="duelist left">
+            <div class="duelist-avatar"><span>${initials(left.name)}</span><b>${left.rank}</b></div>
+            <strong>${escapeHtml(left.name)}</strong>
+            <em>${left.playerId === player?.playerId ? ratingValue.textContent : '2241'}</em>
+        </div>
+        <div class="score-focus">
+            <b>${left.score}</b><span>:</span><b>${right.score}</b>
+            <i aria-hidden="true"></i>
+        </div>
+        <div class="duelist right">
+            <div class="duelist-avatar"><span>${initials(right.name)}</span><b>${right.rank}</b></div>
+            <strong>${escapeHtml(right.name)}</strong>
+            <em>${right.playerId === player?.playerId ? ratingValue.textContent : '2241'}</em>
+        </div>
+    `;
 }
 
 function startTimer() {
     stopTimer();
     timerInterval = setInterval(() => {
         const leftMs = Math.max(0, currentDeadline - Date.now());
-        timerEl.textContent = `${Math.ceil(leftMs / 1000)} сек`;
+        timerEl.textContent = String(Math.ceil(leftMs / 1000));
+        timerEl.classList.toggle('danger', leftMs <= 3_000);
         if (leftMs <= 0) {
             lockAnswers();
             stopTimer();
@@ -298,6 +377,7 @@ function stopTimer() {
         clearInterval(timerInterval);
         timerInterval = null;
     }
+    timerEl.classList.remove('danger');
 }
 
 function lockAnswers() {
@@ -308,45 +388,82 @@ async function loadLeaderboard() {
     const response = await fetch('/v1/leaderboards/global');
     if (!response.ok) {
         leaderboardList.innerHTML = '<div class="empty-state">Топ пока недоступен.</div>';
+        leaderboardPreview.innerHTML = leaderboardList.innerHTML;
         return;
     }
     const rows = await response.json();
     if (!rows.length) {
-        leaderboardList.innerHTML = '<div class="empty-state">Сыграй первый матч и займи место в топе.</div>';
+        leaderboardList.innerHTML = '<div class="empty-state">Сыграй первый матч и займи первую строку.</div>';
+        leaderboardPreview.innerHTML = leaderboardList.innerHTML;
         return;
     }
-    leaderboardList.innerHTML = rows.slice(0, 10).map(row => `
-        <div class="leaderboard-row">
+    const rowMarkup = rows.slice(0, 20).map(row => `
+        <div class="leaderboard-row ${row.rank <= 3 ? 'podium' : ''}">
             <strong>${row.rank}</strong>
             <span>${escapeHtml(row.displayName)}</span>
             <b>${row.iqRating}</b>
-            <small>${row.gamesPlayed} игр</small>
+            <small>${row.gamesPlayed}</small>
+        </div>
+    `).join('');
+    leaderboardList.innerHTML = rowMarkup;
+    leaderboardPreview.innerHTML = rows.slice(0, 5).map(row => `
+        <div class="leaderboard-row ${player?.playerId === row.playerId ? 'current' : ''} ${row.rank <= 3 ? 'podium' : ''}">
+            <strong>${row.rank}</strong>
+            <span>${escapeHtml(row.displayName)}</span>
+            <b>${row.iqRating}</b>
+            <small>${row.gamesPlayed}</small>
         </div>
     `).join('');
 }
 
 function renderProfile() {
-    if (!player) {
-        profileName.textContent = '—';
-        profileHandle.textContent = '—';
-        profileReferral.textContent = '—';
-        return;
-    }
-    profileName.textContent = player.displayName;
-    profileHandle.textContent = `@${player.handle}`;
-    profileReferral.textContent = player.referralCode || '—';
+    const displayName = player?.displayName || 'Игрок';
+    const handle = player?.handle ? `@${player.handle}` : '@telegram';
+    const rating = Number(player?.iqRating || ratingValue.textContent || 1500);
+    const games = Number(player?.gamesPlayed || 0);
+    const wins = Number(player?.wins || 0);
+    const progress = Math.max(0, Math.min(1000, rating % 1000));
+    profileName.textContent = displayName;
+    playerCardName.textContent = displayName;
+    profileHandle.textContent = handle;
+    profileReferral.textContent = player?.referralCode || '—';
+    profileCategory.textContent = categoryNames.get(selectedCategory);
+    profileAvatar.textContent = initials(displayName);
+    profilePreviewAvatar.textContent = initials(displayName);
+    profilePreviewName.textContent = displayName;
+    profilePreviewTitle.textContent = categoryNames.get(selectedCategory);
+    ratingValue.textContent = rating;
+    winsValue.textContent = wins;
+    winrateValue.textContent = games ? `${Math.round((wins / games) * 100)}%` : '0%';
+    streakValue.textContent = player?.streak || '0';
+    rankCrest.textContent = rankLabel(rating);
+    rankProgress.style.width = `${Math.round((progress / 1000) * 100)}%`;
+    rankProgressText.textContent = `${progress} / 1000`;
+}
+
+function rankLabel(rating) {
+    if (rating >= 2600) return 'I';
+    if (rating >= 2300) return 'II';
+    if (rating >= 2000) return 'III';
+    if (rating >= 1600) return 'IV';
+    return 'V';
 }
 
 function showView(view) {
-    activeView = view;
-    arenaTab.classList.toggle('active', view === 'arena');
-    leaderboardTab.classList.toggle('active', view === 'leaderboard');
-    profileTab.classList.toggle('active', view === 'profile');
-    setHidden(scoreboardEl, view !== 'arena' || !currentMatchId);
-    setHidden(questionBox, view !== 'arena' || !currentRound);
-    setHidden(leaderboardPanel, view !== 'leaderboard');
-    setHidden(profilePanel, view !== 'profile');
-    playBtn.classList.toggle('hidden', view !== 'arena');
+    Object.entries(views).forEach(([key, el]) => el.classList.toggle('active-view', key === view));
+    Object.entries(tabs).forEach(([key, el]) => el.classList.toggle('active', key === view));
+    if (view === 'leaderboard') loadLeaderboard();
+    if (view === 'profile') renderProfile();
+}
+
+function initials(value) {
+    return String(value)
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0])
+        .join('')
+        .toUpperCase() || 'IQ';
 }
 
 function escapeHtml(value) {
@@ -359,14 +476,10 @@ function escapeHtml(value) {
 }
 
 playBtn.addEventListener('click', connectRealtime);
-arenaTab.addEventListener('click', () => showView('arena'));
-leaderboardTab.addEventListener('click', async () => {
-    showView('leaderboard');
-    await loadLeaderboard();
-});
-profileTab.addEventListener('click', () => {
-    renderProfile();
-    showView('profile');
-});
+tabs.arena.addEventListener('click', () => showView('arena'));
+tabs.leaderboard.addEventListener('click', () => showView('leaderboard'));
+tabs.profile.addEventListener('click', () => showView('profile'));
 
-telegramLogin().catch(() => setStatus('Ошибка запуска Web App.'));
+renderCategories();
+renderProfile();
+telegramLogin().catch(() => setStatus('Ошибка запуска WebApp.'));

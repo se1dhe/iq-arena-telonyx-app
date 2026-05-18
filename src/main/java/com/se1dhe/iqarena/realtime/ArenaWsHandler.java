@@ -42,7 +42,7 @@ public class ArenaWsHandler extends TextWebSocketHandler {
         }
 
         if ("queue.join".equals(type)) {
-            matchmakingService.join(playerId);
+            matchmakingService.join(playerId, payload.path("category").asText("mixed"));
             return;
         }
 

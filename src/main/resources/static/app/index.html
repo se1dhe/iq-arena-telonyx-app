@@ -8,50 +8,146 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-<div class="page">
-    <header class="hero">
-        <div class="badge">TELONYX</div>
-        <h1>IQ Arena</h1>
-        <p>Быстрая PvP-викторина 1v1 прямо в Telegram.</p>
+<div class="app-shell">
+    <header class="topbar">
+        <div class="brand-lockup" aria-label="IQ Arena">
+            <span class="brand-mark">IQ</span>
+            <strong>IQ Arena</strong>
+        </div>
+        <div class="signal-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     </header>
 
-    <main class="card">
-        <div id="status" class="status">Готовим арену...</div>
-        <div class="tabs">
-            <button id="arenaTab" class="tab active" type="button">Арена</button>
-            <button id="leaderboardTab" class="tab" type="button">Топ</button>
-            <button id="profileTab" class="tab" type="button">Профиль</button>
+    <section class="player-card" aria-label="Игровая карточка">
+        <div class="rank-crest" id="rankCrest">IV</div>
+        <div class="player-card-main">
+            <strong id="playerCardName">Интеллектор</strong>
+            <span>Рейтинг IQ <b id="ratingValue">1500</b></span>
         </div>
-        <div id="ratingLine" class="rating-line hidden"></div>
-        <div id="scoreboard" class="scoreboard hidden"></div>
-        <div id="questionBox" class="question-box hidden">
-            <div id="roundLabel" class="round-label"></div>
-            <h2 id="questionText"></h2>
-            <div id="timer" class="timer"></div>
-            <div id="answers" class="answers"></div>
-            <div id="explanation" class="explanation hidden"></div>
+        <div class="stat-slice">
+            <span>Победы</span>
+            <strong id="winsValue">0</strong>
         </div>
-        <div id="leaderboardPanel" class="panel hidden">
-            <div id="leaderboardList" class="leaderboard-list"></div>
+        <div class="stat-slice">
+            <span>Винрейт</span>
+            <strong id="winrateValue">0%</strong>
         </div>
-        <div id="profilePanel" class="panel hidden">
+        <div class="stat-slice">
+            <span>Серия</span>
+            <strong id="streakValue">0</strong>
+        </div>
+    </section>
+
+    <main class="screen">
+        <section id="arenaView" class="view active-view">
+            <div class="category-panel">
+                <p class="panel-title">Выбор категории</p>
+                <div id="categoryRail" class="category-rail" aria-label="Категории вопросов"></div>
+                <button id="playBtn" class="primary" type="button">
+                    <span>Найти матч</span>
+                    <i aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="duel-stage">
+                <div class="arena-meta">
+                    <span id="roundLabel">Раунд 1</span>
+                    <strong><i aria-hidden="true"></i><b id="timer">10</b></strong>
+                </div>
+                <div id="scoreboard" class="scoreboard hidden"></div>
+                <div id="status" class="status">Готовим арену...</div>
+                <div id="ratingLine" class="rating-line hidden"></div>
+                <div id="questionBox" class="question-box hidden">
+                    <h2 id="questionText"></h2>
+                    <div id="answers" class="answers"></div>
+                    <div id="explanation" class="explanation hidden"></div>
+                </div>
+            </div>
+
+            <div class="home-grid">
+                <section class="leaderboard-frame compact-card">
+                    <div class="compact-head">
+                        <p class="panel-title">Топ игроков</p>
+                        <span class="signal-mark small" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                    </div>
+                    <div id="leaderboardPreview" class="leaderboard-list"></div>
+                </section>
+                <section class="profile-card compact-card">
+                    <div class="compact-head">
+                        <p class="panel-title">Профиль</p>
+                        <span class="profile-mini-icon" aria-hidden="true"></span>
+                    </div>
+                    <div class="profile-preview">
+                        <div class="profile-avatar" id="profilePreviewAvatar">IQ</div>
+                        <div>
+                            <strong id="profilePreviewName">Игрок</strong>
+                            <span id="profilePreviewTitle">Стратег</span>
+                        </div>
+                    </div>
+                    <div class="profile-progress">
+                        <span>До следующего ранга</span>
+                        <i><b id="rankProgress"></b></i>
+                        <strong id="rankProgressText">0 / 1000</strong>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section id="leaderboardView" class="view">
+            <div class="section-head">
+                <p class="eyeline">Таблица лидеров</p>
+                <h2>Топ арены</h2>
+            </div>
+            <div class="leaderboard-frame">
+                <div class="leaderboard-header">
+                    <span>Ранг</span>
+                    <span>Игрок</span>
+                    <span>IQ</span>
+                    <span>Игры</span>
+                </div>
+                <div id="leaderboardList" class="leaderboard-list"></div>
+            </div>
+        </section>
+
+        <section id="profileView" class="view">
+            <div class="profile-hero">
+                <div class="profile-avatar" id="profileAvatar">IQ</div>
+                <div>
+                    <p class="eyeline">Профиль</p>
+                    <h2 id="profileName">Игрок</h2>
+                    <span id="profileHandle" class="profile-handle">@arena</span>
+                </div>
+            </div>
             <div class="profile-grid">
-                <div>
-                    <span>Имя</span>
-                    <strong id="profileName">—</strong>
-                </div>
-                <div>
-                    <span>Handle</span>
-                    <strong id="profileHandle">—</strong>
-                </div>
                 <div>
                     <span>Invite</span>
                     <strong id="profileReferral">—</strong>
                 </div>
+                <div>
+                    <span>Статус</span>
+                    <strong>Active</strong>
+                </div>
+                <div>
+                    <span>Фокус</span>
+                    <strong id="profileCategory">Mixed</strong>
+                </div>
             </div>
-        </div>
-        <button id="playBtn" class="primary" type="button">Найти соперника</button>
+        </section>
     </main>
+
+    <nav class="bottom-nav" aria-label="Главная навигация">
+        <button id="arenaTab" class="nav-item active" type="button">
+            <span class="nav-icon arena-icon"></span>
+            Арена
+        </button>
+        <button id="leaderboardTab" class="nav-item" type="button">
+            <span class="nav-icon top-icon"></span>
+            Топ
+        </button>
+        <button id="profileTab" class="nav-item" type="button">
+            <span class="nav-icon profile-icon"></span>
+            Профиль
+        </button>
+    </nav>
 </div>
 <script src="/app/app.js"></script>
 </body>

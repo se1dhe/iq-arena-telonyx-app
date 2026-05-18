@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class GameService {
     private static final String BOT_HANDLE = "arena_bot";
+    private static final String MIXED_CATEGORY = "mixed";
 
     private final MatchRepository matchRepository;
     private final MatchRoundRepository roundRepository;
@@ -35,6 +36,7 @@ public class GameService {
 
     // Защита от двойного reveal, когда оба игрока ответили почти одновременно или сработал timer.
     private final Set<String> revealedRounds = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, String> matchCategories = new ConcurrentHashMap<>();
 
     @Value("${app.game.rounds:5}")
     private int rounds;
@@ -47,6 +49,11 @@ public class GameService {
 
     @Transactional
     public UUID createMatch(UUID playerOneId, UUID playerTwoId) {
+        return createMatch(playerOneId, playerTwoId, MIXED_CATEGORY);
+    }
+
+    @Transactional
+    public UUID createMatch(UUID playerOneId, UUID playerTwoId, String category) {
         Player one = playerRepository.findById(playerOneId).orElseThrow();
         Player two = playerRepository.findById(playerTwoId).orElseThrow();
 
@@ -56,12 +63,15 @@ public class GameService {
         match.setPlayerTwo(two);
         match.setStartedAt(Instant.now());
         match = matchRepository.save(match);
+        String normalizedCategory = normalizeCategory(category);
+        matchCategories.put(match.getId(), normalizedCategory);
 
         Map<String, Object> payload = Map.of(
                 "matchId", match.getId().toString(),
                 "players", List.of(playerPayload(one), playerPayload(two)),
                 "rounds", rounds,
-                "roundSeconds", roundSeconds
+                "roundSeconds", roundSeconds,
+                "category", normalizedCategory
         );
 
         wsSender.sendToPlayer(playerOneId, "match.found", payload);
@@ -122,7 +132,8 @@ public class GameService {
             return;
         }
 
-        List<Question> questions = questionRepository.pickRandomApproved("ru-RU", 1);
+        String matchCategory = matchCategories.getOrDefault(matchId, MIXED_CATEGORY);
+        List<Question> questions = pickQuestion(matchCategory);
         if (questions.isEmpty()) {
             throw new IllegalStateException("Нет вопросов для матча");
         }
@@ -227,6 +238,7 @@ public class GameService {
         match.setState(MatchState.match_complete);
         match.setCompletedAt(Instant.now());
         matchRepository.save(match);
+        matchCategories.remove(matchId);
 
         List<Map<String, Object>> ratingUpdates = ratingService.updateAfterMatch(match);
 
@@ -248,6 +260,26 @@ public class GameService {
         } catch (Exception ignored) {
             // MVP: не валим scheduler из-за отдельного матча.
         }
+    }
+
+    private List<Question> pickQuestion(String category) {
+        if (category != null && !MIXED_CATEGORY.equals(category)) {
+            List<Question> categoryQuestions = questionRepository.pickRandomApprovedByCategory("ru-RU", category, 1);
+            if (!categoryQuestions.isEmpty()) {
+                return categoryQuestions;
+            }
+        }
+        return questionRepository.pickRandomApproved("ru-RU", 1);
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return MIXED_CATEGORY;
+        }
+        return switch (category) {
+            case "history", "geography", "science", "it", "sports" -> category;
+            default -> MIXED_CATEGORY;
+        };
     }
 
     private void applyDuelBonus(List<MatchAnswerEntity> answers) {

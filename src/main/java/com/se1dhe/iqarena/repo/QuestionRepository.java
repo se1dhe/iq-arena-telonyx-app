@@ -10,4 +10,7 @@ import java.util.UUID;
 public interface QuestionRepository extends JpaRepository<Question, UUID> {
     @Query(value = "SELECT * FROM questions WHERE status = 'approved' AND locale = :locale ORDER BY random() LIMIT :limit", nativeQuery = true)
     List<Question> pickRandomApproved(@Param("locale") String locale, @Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM questions WHERE status = 'approved' AND locale = :locale AND category = :category ORDER BY random() LIMIT :limit", nativeQuery = true)
+    List<Question> pickRandomApprovedByCategory(@Param("locale") String locale, @Param("category") String category, @Param("limit") int limit);
 }

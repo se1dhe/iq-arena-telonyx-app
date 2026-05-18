@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
 // In-memory matchmaking для MVP. Позже переносим состояние в Redis.
 @Service
@@ -22,6 +23,7 @@ public class MatchmakingService {
 
     private final Queue<UUID> queue = new ConcurrentLinkedQueue<>();
     private final Set<UUID> queuedPlayers = Collections.synchronizedSet(new HashSet<>());
+    private final Map<UUID, String> preferredCategories = new ConcurrentHashMap<>();
     private final GameService gameService;
     private final WsSender wsSender;
     private final PlayerRepository playerRepository;
@@ -30,14 +32,16 @@ public class MatchmakingService {
     @Value("${app.matchmaking.bot-wait-seconds:4}")
     private long botWaitSeconds;
 
-    public void join(UUID playerId) {
+    public void join(UUID playerId, String category) {
+        preferredCategories.put(playerId, normalizeCategory(category));
         if (queuedPlayers.add(playerId)) {
             queue.add(playerId);
         }
 
         wsSender.sendToPlayer(playerId, "queue.status", Map.of(
                 "status", "searching",
-                "joinedAt", Instant.now().toString()
+                "joinedAt", Instant.now().toString(),
+                "category", preferredCategories.get(playerId)
         ));
 
         tryPair();
@@ -47,6 +51,7 @@ public class MatchmakingService {
     public void leave(UUID playerId) {
         queuedPlayers.remove(playerId);
         queue.remove(playerId);
+        preferredCategories.remove(playerId);
         wsSender.sendToPlayer(playerId, "queue.status", Map.of("status", "idle"));
     }
 
@@ -61,7 +66,9 @@ public class MatchmakingService {
 
             queuedPlayers.remove(one);
             queuedPlayers.remove(two);
-            gameService.createMatch(one, two);
+            gameService.createMatch(one, two, matchCategory(one, two));
+            preferredCategories.remove(one);
+            preferredCategories.remove(two);
         }
     }
 
@@ -72,7 +79,26 @@ public class MatchmakingService {
 
         queue.remove(playerId);
         Player bot = findOrCreateBot();
-        gameService.createMatch(playerId, bot.getId());
+        gameService.createMatch(playerId, bot.getId(), preferredCategories.remove(playerId));
+    }
+
+    private String matchCategory(UUID one, UUID two) {
+        String first = preferredCategories.getOrDefault(one, "mixed");
+        String second = preferredCategories.getOrDefault(two, "mixed");
+        if (!"mixed".equals(first) && first.equals(second)) {
+            return first;
+        }
+        return "mixed";
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return "mixed";
+        }
+        return switch (category) {
+            case "history", "geography", "science", "it", "sports" -> category;
+            default -> "mixed";
+        };
     }
 
     private Player findOrCreateBot() {
