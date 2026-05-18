@@ -9,8 +9,12 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.BotSession;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.methods.menubutton.SetChatMenuButton;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.menubutton.MenuButtonWebApp;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -58,6 +62,7 @@ public class IQArenaTelegramBot implements ApplicationRunner {
             telegramClient = new OkHttpTelegramClient(token);
             botsApplication = new TelegramBotsLongPollingApplication();
             botSession = botsApplication.registerBot(token, this::consumeUpdates);
+            configureBotProfile();
             log.info(
                     "IQ Arena Telegram bot registered: username={}, webAppUrl={}, running={}",
                     username,
@@ -66,6 +71,17 @@ public class IQArenaTelegramBot implements ApplicationRunner {
             );
         } catch (TelegramApiException e) {
             log.error("Failed to register IQ Arena Telegram bot", e);
+        }
+    }
+
+    private void configureBotProfile() {
+        try {
+            telegramClient.execute(new SetMyCommands(List.of(
+                    new BotCommand("start", "Открыть IQ Arena")
+            )));
+            telegramClient.execute(new SetChatMenuButton(null, new MenuButtonWebApp("Играть", new WebAppInfo(webAppUrl))));
+        } catch (TelegramApiException e) {
+            log.warn("Failed to configure Telegram bot commands/menu button", e);
         }
     }
 
