@@ -93,8 +93,11 @@ button {
 .brand-mark {
     width: 58px;
     height: 58px;
-    font-size: 25px;
-    font-family: Georgia, "Times New Roman", serif;
+    overflow: hidden;
+    background: url("/app/assets/brand-logo.jpg") center / cover no-repeat;
+    box-shadow: none;
+    color: transparent;
+    font-size: 0;
 }
 
 .brand-lockup strong {
@@ -178,7 +181,11 @@ button {
 .rank-crest {
     width: 76px;
     height: 76px;
-    font-size: 31px;
+    overflow: hidden;
+    color: transparent;
+    background: url("/app/assets/rank-iv.jpg") center / cover no-repeat;
+    box-shadow: none;
+    font-size: 0;
     justify-self: start;
     font-family: Georgia, "Times New Roman", serif;
 }
@@ -321,11 +328,12 @@ h2 {
 }
 
 .category-pill i {
-    color: rgba(232, 226, 211, 0.47);
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 46px;
-    font-style: normal;
-    line-height: 1;
+    display: block;
+    width: 50px;
+    height: 50px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
 }
 
 .category-pill strong {
@@ -343,8 +351,15 @@ h2 {
 }
 
 .category-pill.selected i {
-    color: var(--cyan);
+    filter: brightness(1.4) saturate(1.45);
 }
+
+.cat-mixed { background-image: url("/app/assets/cat-mixed.jpg"); }
+.cat-geography { background-image: url("/app/assets/cat-geography.jpg"); }
+.cat-science { background-image: url("/app/assets/cat-science.jpg"); }
+.cat-history { background-image: url("/app/assets/cat-history.jpg"); }
+.cat-art { background-image: url("/app/assets/cat-art.jpg"); }
+.cat-logic { background-image: url("/app/assets/cat-logic.jpg"); }
 
 .category-pill:active,
 .nav-item:active,
@@ -476,15 +491,18 @@ h2 {
     box-shadow: 0 0 34px rgba(78, 217, 255, 0.16);
 }
 
+.duelist.left .duelist-avatar {
+    background: url("/app/assets/avatar-player.jpg") center / cover no-repeat;
+}
+
 .duelist.right .duelist-avatar {
     color: var(--gold-2);
+    background: url("/app/assets/avatar-owl.jpg") center / cover no-repeat;
     box-shadow: 0 0 34px rgba(214, 181, 103, 0.16);
 }
 
 .duelist-avatar span {
-    color: var(--text);
-    font-size: clamp(24px, 6vw, 38px);
-    font-weight: 850;
+    display: none;
 }
 
 .duelist-avatar b {
@@ -503,8 +521,16 @@ h2 {
     font-weight: 860;
 }
 
+.duelist-avatar b {
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+    background: url("/app/assets/rank-small-iv.jpg") center / cover no-repeat;
+    box-shadow: none;
+}
+
 .duelist.right .duelist-avatar b {
-    color: var(--gold-2);
+    background-image: url("/app/assets/rank-iii.jpg");
 }
 
 .duelist strong {
@@ -1180,21 +1206,33 @@ h2 {
         padding: 10px;
     }
 
+    .category-panel {
+        margin-bottom: 12px;
+        padding: 9px 10px 10px;
+        border-radius: 8px;
+    }
+
     .panel-title,
     .eyeline {
-        font-size: 14px;
+        margin-bottom: 9px;
+        font-size: 12px;
+        font-weight: 520;
     }
 
     .category-rail {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        border-radius: 6px;
     }
 
     .category-pill {
-        min-height: 104px;
-        border-bottom: 1px solid rgba(232, 226, 211, 0.1);
+        min-height: 61px;
+        gap: 3px;
+        padding: 6px 2px 5px;
+        border-right: 1px solid rgba(232, 226, 211, 0.1);
+        border-bottom: 0;
     }
 
-    .category-pill:nth-child(3n) {
+    .category-pill:nth-child(6n) {
         border-right: 0;
     }
 
@@ -1203,43 +1241,131 @@ h2 {
     }
 
     .category-pill i {
-        font-size: 34px;
+        width: 26px;
+        height: 26px;
     }
 
     .category-pill strong {
-        font-size: 14px;
+        font-size: 9px;
+        font-weight: 410;
+        line-height: 1.12;
     }
 
     .primary {
-        min-height: 64px;
-        font-size: 18px;
+        min-height: 38px;
+        margin-top: 8px;
+        gap: 52px;
+        border-width: 1px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: 520;
     }
 
     .primary i {
-        width: 32px;
-        height: 32px;
+        width: 20px;
+        height: 20px;
+        border-width: 1px;
     }
 
     .primary i::before,
     .primary i::after {
-        top: 14px;
+        top: 9px;
+        left: -5px;
+        right: -5px;
+        height: 1px;
     }
 
     .scoreboard {
         grid-template-columns: 108px minmax(84px, 1fr) 108px;
         gap: 6px;
+        margin: 0 0 12px;
+    }
+
+    .arena-meta {
+        margin-bottom: 4px;
+        font-size: 13px;
+    }
+
+    .arena-meta strong {
+        gap: 5px;
+        font-size: 13px;
+    }
+
+    .arena-meta i {
+        width: 11px;
+        height: 11px;
+        border-width: 1px;
+        box-shadow: inset 0 0 0 2px #10120f;
+    }
+
+    .duelist-avatar {
+        width: 58px;
+        height: 58px;
+        margin-bottom: 7px;
+        border-width: 2px;
+    }
+
+    .duelist-avatar b {
+        right: 2px;
+        bottom: -7px;
+        width: 25px;
+        height: 28px;
     }
 
     .duelist strong {
-        font-size: 17px;
+        font-size: 13px;
+        font-weight: 520;
+    }
+
+    .duelist em {
+        margin-top: 5px;
+        font-size: 16px;
+    }
+
+    .score-focus {
+        grid-template-columns: 1fr 15px 1fr;
+    }
+
+    .score-focus b {
+        font-size: 42px;
+    }
+
+    .score-focus span {
+        font-size: 32px;
+    }
+
+    .score-focus i {
+        margin-top: 12px;
     }
 
     .question-box {
-        padding: 14px 10px;
+        margin-top: 7px;
+        padding: 10px;
+        border-radius: 6px;
+    }
+
+    .question-box h2 {
+        margin-bottom: 10px;
+        font-size: 13px;
+        line-height: 1.35;
     }
 
     .answer-btn {
-        min-height: 58px;
+        grid-template-columns: 29px minmax(0, 1fr);
+        gap: 7px;
+        min-height: 30px;
+        padding: 5px 8px;
+        border-radius: 4px;
+    }
+
+    .answer-btn span {
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+    }
+
+    .answer-btn strong {
+        font-size: 11px;
     }
 
     .home-grid {

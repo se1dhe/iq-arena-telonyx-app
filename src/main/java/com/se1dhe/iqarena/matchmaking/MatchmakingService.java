@@ -96,7 +96,7 @@ public class MatchmakingService {
             return "mixed";
         }
         return switch (category) {
-            case "history", "geography", "science", "it", "sports" -> category;
+            case "history", "geography", "science", "art", "logic" -> category;
             default -> "mixed";
         };
     }

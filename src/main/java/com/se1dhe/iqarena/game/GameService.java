@@ -277,7 +277,7 @@ public class GameService {
             return MIXED_CATEGORY;
         }
         return switch (category) {
-            case "history", "geography", "science", "it", "sports" -> category;
+            case "history", "geography", "science", "art", "logic" -> category;
             default -> MIXED_CATEGORY;
         };
     }

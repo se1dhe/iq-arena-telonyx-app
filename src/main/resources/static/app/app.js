@@ -43,12 +43,12 @@ const rankProgress = document.getElementById('rankProgress');
 const rankProgressText = document.getElementById('rankProgressText');
 
 const categories = [
-    { id: 'mixed', label: 'Общие знания', hint: 'микс', icon: 'Π' },
-    { id: 'geography', label: 'География', hint: 'карта', icon: '◎' },
-    { id: 'science', label: 'Наука', hint: 'факты', icon: '✶' },
-    { id: 'history', label: 'История', hint: 'эпохи', icon: '▥' },
-    { id: 'it', label: 'IT', hint: 'код', icon: '{}' },
-    { id: 'sports', label: 'Спорт', hint: 'скорость', icon: 'Σ' }
+    { id: 'mixed', label: 'Общие знания', asset: 'mixed' },
+    { id: 'geography', label: 'География', asset: 'geography' },
+    { id: 'science', label: 'Наука', asset: 'science' },
+    { id: 'history', label: 'История', asset: 'history' },
+    { id: 'art', label: 'Искусство', asset: 'art' },
+    { id: 'logic', label: 'Логика', asset: 'logic' }
 ];
 
 const categoryNames = new Map(categories.map(category => [category.id, category.label]));
@@ -75,7 +75,7 @@ function setHidden(el, hidden) {
 function renderCategories() {
     categoryRail.innerHTML = categories.map(category => `
         <button class="category-pill ${category.id === selectedCategory ? 'selected' : ''}" type="button" data-category="${category.id}">
-            <i aria-hidden="true">${category.icon}</i>
+            <i class="cat-icon cat-${category.asset}" aria-hidden="true"></i>
             <strong>${category.label}</strong>
         </button>
     `).join('');
@@ -95,8 +95,7 @@ async function telegramLogin() {
 
     const initData = tg?.initData || '';
     if (!initData) {
-        setStatus('Откройте арену из Telegram, чтобы войти в рейтинг.');
-        renderProfile();
+        renderDemoArena();
         await loadLeaderboard();
         return;
     }
@@ -214,6 +213,7 @@ function onMatchFound(payload) {
     renderCategories();
     setHidden(ratingLine, true);
     setStatus('Соперник найден. Арена открыта.');
+    setHidden(statusEl, true);
     playBtn.classList.add('hidden');
     setHidden(scoreboardEl, false);
     renderScoreboard(payload.players.map(p => ({ playerId: p.playerId, score: 0 })));
@@ -224,6 +224,7 @@ function onRoundOpen(payload) {
     currentDeadline = new Date(payload.deadlineAt).getTime();
     selectedAnswer = null;
     setStatus('Раунд открыт. Один ответ, один шанс.');
+    setHidden(statusEl, true);
     setHidden(explanationEl, true);
     explanationEl.textContent = '';
     setHidden(questionBox, false);
@@ -315,6 +316,7 @@ function resetArena() {
     playersById = new Map();
     timerEl.textContent = '10';
     playBtn.classList.remove('hidden');
+    setHidden(statusEl, false);
     setHidden(scoreboardEl, true);
     setHidden(questionBox, true);
     setHidden(ratingLine, true);
@@ -357,6 +359,37 @@ function renderScoreboard(scoreboard) {
             <em>${right.playerId === player?.playerId ? ratingValue.textContent : '2241'}</em>
         </div>
     `;
+}
+
+function renderDemoArena() {
+    player = {
+        playerId: 'demo-player',
+        displayName: 'Интеллектор',
+        handle: 'intellector',
+        referralCode: 'IQ123',
+        iqRating: 2367,
+        wins: 128,
+        gamesPlayed: 178,
+        streak: 7
+    };
+    selectedCategory = 'mixed';
+    renderProfile();
+    playersById = new Map([
+        ['demo-player', { playerId: 'demo-player', displayName: 'Интеллектор' }],
+        ['demo-opponent', { playerId: 'demo-opponent', displayName: 'Эрудит' }]
+    ]);
+    onMatchFound({
+        matchId: 'demo-match',
+        category: 'mixed',
+        players: [...playersById.values()]
+    });
+    onRoundOpen({
+        round: 1,
+        category: 'mixed',
+        prompt: 'Какой элемент имеет наибольшую электроотрицательность по шкале Полинга?',
+        options: ['Фтор', 'Кислород', 'Хлор', 'Азот'],
+        deadlineAt: new Date(Date.now() + 18_000).toISOString()
+    });
 }
 
 function startTimer() {
