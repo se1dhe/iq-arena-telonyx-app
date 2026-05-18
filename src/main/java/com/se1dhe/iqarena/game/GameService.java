@@ -42,6 +42,9 @@ public class GameService {
     @Value("${app.game.round-seconds:10}")
     private int roundSeconds;
 
+    @Value("${app.game.reveal-pause-seconds:2}")
+    private int revealPauseSeconds;
+
     @Transactional
     public UUID createMatch(UUID playerOneId, UUID playerTwoId) {
         Player one = playerRepository.findById(playerOneId).orElseThrow();
@@ -175,6 +178,7 @@ public class GameService {
 
         MatchRoundEntity round = roundRepository.findByMatchIdAndRoundIndex(matchId, roundIndex).orElseThrow();
         List<MatchAnswerEntity> answers = answerRepository.findByMatchIdAndRoundIndex(matchId, roundIndex);
+        applyDuelBonus(answers);
 
         int onePoints = answers.stream()
                 .filter(a -> a.getPlayer().getId().equals(match.getPlayerOne().getId()))
@@ -187,6 +191,7 @@ public class GameService {
 
         match.setPlayerOneScore(match.getPlayerOneScore() + onePoints);
         match.setPlayerTwoScore(match.getPlayerTwoScore() + twoPoints);
+        match.setState(MatchState.round_reveal);
         matchRepository.save(match);
 
         sendBoth(match, "round.reveal", Map.of(
@@ -200,9 +205,9 @@ public class GameService {
         ));
 
         if (roundIndex >= rounds) {
-            completeMatch(matchId);
+            taskScheduler.schedule(() -> completeMatch(matchId), Instant.now().plusSeconds(revealPauseSeconds));
         } else {
-            openRound(matchId, roundIndex + 1);
+            taskScheduler.schedule(() -> openRound(matchId, roundIndex + 1), Instant.now().plusSeconds(revealPauseSeconds));
         }
     }
 
@@ -212,13 +217,12 @@ public class GameService {
         if (match.getState() == MatchState.match_complete) {
             return;
         }
-        UUID winnerId = null;
-        if (match.getPlayerOneScore() > match.getPlayerTwoScore()) {
+        MatchTiebreak tiebreak = resolveWinner(match, answerRepository.findByMatchId(matchId));
+        UUID winnerId = tiebreak.winnerId();
+        if (winnerId != null && winnerId.equals(match.getPlayerOne().getId())) {
             match.setWinnerPlayer(match.getPlayerOne());
-            winnerId = match.getPlayerOne().getId();
-        } else if (match.getPlayerTwoScore() > match.getPlayerOneScore()) {
+        } else if (winnerId != null && winnerId.equals(match.getPlayerTwo().getId())) {
             match.setWinnerPlayer(match.getPlayerTwo());
-            winnerId = match.getPlayerTwo().getId();
         }
         match.setState(MatchState.match_complete);
         match.setCompletedAt(Instant.now());
@@ -229,6 +233,7 @@ public class GameService {
         sendBoth(match, "match.result", Map.of(
                 "matchId", matchId.toString(),
                 "winnerPlayerId", winnerId == null ? "" : winnerId.toString(),
+                "tiebreak", tiebreak.reason(),
                 "scoreboard", scoreboard(match)
         ));
         sendBoth(match, "rating.updated", Map.of(
@@ -243,6 +248,84 @@ public class GameService {
         } catch (Exception ignored) {
             // MVP: не валим scheduler из-за отдельного матча.
         }
+    }
+
+    private void applyDuelBonus(List<MatchAnswerEntity> answers) {
+        if (answers.size() < 2) {
+            return;
+        }
+
+        MatchAnswerEntity first = answers.get(0);
+        MatchAnswerEntity second = answers.get(1);
+        int firstBonus = scoringService.duelBonus(
+                first.isCorrect(),
+                responseMs(first),
+                second.isCorrect(),
+                responseMs(second)
+        );
+        int secondBonus = scoringService.duelBonus(
+                second.isCorrect(),
+                responseMs(second),
+                first.isCorrect(),
+                responseMs(first)
+        );
+
+        if (firstBonus > 0) {
+            first.setPoints(first.getPoints() + firstBonus);
+            answerRepository.save(first);
+        }
+        if (secondBonus > 0) {
+            second.setPoints(second.getPoints() + secondBonus);
+            answerRepository.save(second);
+        }
+    }
+
+    private MatchTiebreak resolveWinner(MatchEntity match, List<MatchAnswerEntity> answers) {
+        UUID oneId = match.getPlayerOne().getId();
+        UUID twoId = match.getPlayerTwo().getId();
+
+        if (match.getPlayerOneScore() != match.getPlayerTwoScore()) {
+            return match.getPlayerOneScore() > match.getPlayerTwoScore()
+                    ? new MatchTiebreak(oneId, "score")
+                    : new MatchTiebreak(twoId, "score");
+        }
+
+        int oneCorrect = correctCount(answers, oneId);
+        int twoCorrect = correctCount(answers, twoId);
+        if (oneCorrect != twoCorrect) {
+            return oneCorrect > twoCorrect
+                    ? new MatchTiebreak(oneId, "correct_count")
+                    : new MatchTiebreak(twoId, "correct_count");
+        }
+
+        int oneResponseMs = totalCorrectResponseMs(answers, oneId);
+        int twoResponseMs = totalCorrectResponseMs(answers, twoId);
+        if (oneResponseMs != twoResponseMs) {
+            return oneResponseMs < twoResponseMs
+                    ? new MatchTiebreak(oneId, "correct_response_ms")
+                    : new MatchTiebreak(twoId, "correct_response_ms");
+        }
+
+        return new MatchTiebreak(null, "draw");
+    }
+
+    private int correctCount(List<MatchAnswerEntity> answers, UUID playerId) {
+        return (int) answers.stream()
+                .filter(answer -> answer.getPlayer().getId().equals(playerId))
+                .filter(MatchAnswerEntity::isCorrect)
+                .count();
+    }
+
+    private int totalCorrectResponseMs(List<MatchAnswerEntity> answers, UUID playerId) {
+        return answers.stream()
+                .filter(answer -> answer.getPlayer().getId().equals(playerId))
+                .filter(MatchAnswerEntity::isCorrect)
+                .mapToInt(this::responseMs)
+                .sum();
+    }
+
+    private int responseMs(MatchAnswerEntity answer) {
+        return answer.getResponseMs() == null ? Integer.MAX_VALUE : answer.getResponseMs();
     }
 
     private void scheduleBotAnswerIfNeeded(MatchEntity match, int roundIndex, int correctIndex, int optionsCount) {
@@ -324,4 +407,6 @@ public class GameService {
                 Map.of("playerId", match.getPlayerTwo().getId().toString(), "score", match.getPlayerTwoScore())
         );
     }
+
+    private record MatchTiebreak(UUID winnerId, String reason) {}
 }

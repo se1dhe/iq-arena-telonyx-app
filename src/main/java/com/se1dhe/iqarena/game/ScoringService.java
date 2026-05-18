@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 // Подсчет очков в раунде.
 @Service
 public class ScoringService {
+    private static final int DUEL_BONUS = 10;
+    private static final int DUEL_BONUS_MIN_DELTA_MS = 300;
+
     public int calculate(boolean correct, int responseMs) {
         if (!correct) {
             return 0;
@@ -12,5 +15,12 @@ public class ScoringService {
         int base = 100;
         int speedBonus = Math.max(0, 10_000 - responseMs) / 250;
         return base + speedBonus;
+    }
+
+    public int duelBonus(boolean playerCorrect, int playerResponseMs, boolean opponentCorrect, int opponentResponseMs) {
+        if (!playerCorrect || !opponentCorrect) {
+            return 0;
+        }
+        return opponentResponseMs - playerResponseMs >= DUEL_BONUS_MIN_DELTA_MS ? DUEL_BONUS : 0;
     }
 }

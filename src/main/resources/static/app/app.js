@@ -225,11 +225,24 @@ function onMatchResult(payload) {
     if (!payload.winnerPlayerId) {
         setStatus('Ничья. Жесткая дуэль!');
     } else if (payload.winnerPlayerId === player.playerId) {
-        setStatus('Победа! Ты забрал арену.');
+        setStatus(`Победа! ${tiebreakText(payload.tiebreak)}`);
     } else {
-        setStatus('Поражение. Реванш?');
+        setStatus(`Поражение. ${tiebreakText(payload.tiebreak)} Реванш?`);
     }
     loadLeaderboard();
+}
+
+function tiebreakText(reason) {
+    if (reason === 'correct_count') {
+        return 'Решило число правильных ответов.';
+    }
+    if (reason === 'correct_response_ms') {
+        return 'Решила суммарная скорость правильных ответов.';
+    }
+    if (reason === 'draw') {
+        return 'Все тай-брейки равны.';
+    }
+    return 'Решили очки за матч.';
 }
 
 function resetArena() {

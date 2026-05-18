@@ -7,4 +7,5 @@ import java.util.*;
 public interface MatchAnswerRepository extends JpaRepository<MatchAnswerEntity, UUID> {
     boolean existsByMatchIdAndRoundIndexAndPlayerId(UUID matchId, int roundIndex, UUID playerId);
     List<MatchAnswerEntity> findByMatchIdAndRoundIndex(UUID matchId, int roundIndex);
+    List<MatchAnswerEntity> findByMatchId(UUID matchId);
 }
