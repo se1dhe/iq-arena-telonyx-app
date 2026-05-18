@@ -62,66 +62,74 @@ button {
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    padding: 0 2px 20px;
+    padding: 0 7px 20px;
 }
 
 .brand-lockup {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 21px;
     min-width: 0;
 }
 
 .brand-mark,
 .rank-crest {
+    position: relative;
     display: grid;
     place-items: center;
     clip-path: polygon(50% 0, 93% 24%, 93% 76%, 50% 100%, 7% 76%, 7% 24%);
     color: var(--gold-2);
-    background: linear-gradient(145deg, rgba(241, 217, 147, 0.3), rgba(255,255,255,0.035)), #10110e;
-    box-shadow: inset 0 0 0 2px rgba(214, 181, 103, 0.48), inset 0 0 26px rgba(214, 181, 103, 0.1);
+    background:
+            linear-gradient(145deg, rgba(241, 217, 147, 0.2), rgba(255,255,255,0.025)),
+            #10110e;
+    box-shadow:
+            inset 0 0 0 2px rgba(236, 204, 137, 0.72),
+            inset 0 0 0 8px rgba(2, 3, 4, 0.58),
+            inset 0 0 0 10px rgba(214, 181, 103, 0.22),
+            0 10px 26px rgba(0, 0, 0, 0.28);
     font-weight: 920;
 }
 
 .brand-mark {
     width: 58px;
     height: 58px;
-    font-size: 23px;
+    font-size: 25px;
     font-family: Georgia, "Times New Roman", serif;
 }
 
 .brand-lockup strong {
     overflow: hidden;
     color: #efe3ca;
-    font-size: clamp(42px, 8vw, 56px);
+    font-size: clamp(45px, 7.1vw, 59px);
     line-height: 1;
-    font-weight: 790;
+    font-weight: 520;
     letter-spacing: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-shadow: 0 1px 18px rgba(241, 217, 147, 0.08);
 }
 
 .signal-mark {
     display: inline-grid;
     grid-auto-flow: column;
     align-items: end;
-    gap: 4px;
-    width: 40px;
-    height: 42px;
-    color: rgba(239, 227, 202, 0.72);
+    gap: 5px;
+    width: 42px;
+    height: 44px;
+    color: rgba(239, 227, 202, 0.74);
 }
 
 .signal-mark i {
     display: block;
-    width: 5px;
-    border-radius: 3px 3px 0 0;
+    width: 6px;
+    border-radius: 4px 4px 0 0;
     background: currentColor;
 }
 
-.signal-mark i:nth-child(1) { height: 13px; }
-.signal-mark i:nth-child(2) { height: 21px; }
-.signal-mark i:nth-child(3) { height: 29px; }
-.signal-mark i:nth-child(4) { height: 38px; }
+.signal-mark i:nth-child(1) { height: 16px; opacity: 0.7; }
+.signal-mark i:nth-child(2) { height: 25px; opacity: 0.8; }
+.signal-mark i:nth-child(3) { height: 34px; opacity: 0.9; }
+.signal-mark i:nth-child(4) { height: 43px; }
 
 .signal-mark.small {
     width: 28px;
@@ -154,18 +162,25 @@ button {
 
 .player-card {
     display: grid;
-    grid-template-columns: 82px minmax(0, 1.5fr) repeat(3, minmax(78px, 1fr));
+    grid-template-columns: 78px minmax(220px, 1.4fr) repeat(3, minmax(92px, 0.8fr));
     align-items: center;
-    gap: 16px;
+    gap: 0;
+    min-height: 120px;
     margin-bottom: 20px;
-    padding: 18px;
-    border-radius: 13px;
+    padding: 17px 18px;
+    border-radius: 12px;
+    background:
+            radial-gradient(circle at 14% 50%, rgba(241, 217, 147, 0.07), transparent 32%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.048), rgba(255, 255, 255, 0.018)),
+            rgba(10, 12, 13, 0.88);
 }
 
 .rank-crest {
-    width: 72px;
-    height: 72px;
-    font-size: 28px;
+    width: 76px;
+    height: 76px;
+    font-size: 31px;
+    justify-self: start;
+    font-family: Georgia, "Times New Roman", serif;
 }
 
 .player-card-main strong,
@@ -175,41 +190,60 @@ button {
 
 .player-card-main strong {
     overflow: hidden;
+    color: #fff5e6;
     font-size: 22px;
     line-height: 1.08;
+    font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .player-card-main span,
 .stat-slice span {
-    margin-top: 8px;
-    color: var(--muted);
-    font-size: 14px;
-    font-weight: 520;
+    color: rgba(243, 234, 219, 0.58);
+    font-size: 16px;
+    font-weight: 410;
+}
+
+.player-card-main span {
+    margin-top: 11px;
 }
 
 .player-card-main b {
-    margin-left: 16px;
+    display: inline-block;
+    margin-left: 47px;
     color: var(--gold-2);
-    font-size: 32px;
-    font-weight: 780;
+    font-size: 34px;
+    line-height: 0.85;
+    font-weight: 540;
     font-variant-numeric: tabular-nums;
 }
 
 .stat-slice {
-    min-height: 64px;
-    padding-left: 22px;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    min-height: 59px;
+    padding: 0 16px;
     border-left: 1px solid rgba(232, 226, 211, 0.08);
+    text-align: center;
 }
 
 .stat-slice strong {
     display: block;
-    margin-top: 8px;
-    font-size: 28px;
+    margin-top: 10px;
+    color: #fff3e2;
+    font-size: 30px;
     line-height: 1;
-    font-weight: 760;
+    font-weight: 510;
     font-variant-numeric: tabular-nums;
+}
+
+.streak-value::after {
+    content: "🔥";
+    margin-left: 8px;
+    font-size: 22px;
+    vertical-align: 5%;
 }
 
 .screen,
@@ -1042,11 +1076,11 @@ h2 {
     }
 
     .topbar {
-        padding-bottom: 12px;
+        padding: 0 10px 22px;
     }
 
     .brand-lockup {
-        gap: 10px;
+        gap: 13px;
     }
 
     .brand-mark {
@@ -1056,7 +1090,8 @@ h2 {
     }
 
     .brand-lockup strong {
-        font-size: 38px;
+        font-size: 40px;
+        font-weight: 520;
     }
 
     .signal-mark {
@@ -1065,46 +1100,54 @@ h2 {
     }
 
     .player-card {
-        grid-template-columns: 70px repeat(3, minmax(0, 1fr));
-        gap: 10px 8px;
-        padding: 12px 10px;
+        grid-template-columns: 63px minmax(122px, 1fr) repeat(3, minmax(43px, 0.48fr));
+        gap: 0;
+        min-height: 78px;
+        padding: 10px 8px;
     }
 
     .player-card-main {
-        grid-column: 2 / 5;
+        grid-column: auto;
+        min-width: 0;
     }
 
     .rank-crest {
-        width: 62px;
-        height: 62px;
-        font-size: 24px;
+        width: 58px;
+        height: 58px;
+        font-size: 23px;
     }
 
     .player-card-main strong {
-        font-size: 18px;
+        font-size: 17px;
     }
 
     .player-card-main span,
     .stat-slice span {
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .player-card-main b {
-        display: block;
+        display: inline-block;
         margin: 4px 0 0;
-        font-size: 28px;
+        font-size: 25px;
     }
 
     .stat-slice {
-        min-height: 52px;
-        padding: 10px 0 0;
-        border-top: 1px solid rgba(232, 226, 211, 0.08);
-        border-left: 0;
+        min-height: 47px;
+        padding: 0 5px;
+        border-top: 0;
+        border-left: 1px solid rgba(232, 226, 211, 0.08);
         text-align: center;
     }
 
     .stat-slice strong {
-        font-size: 23px;
+        margin-top: 7px;
+        font-size: 20px;
+    }
+
+    .streak-value::after {
+        margin-left: 3px;
+        font-size: 14px;
     }
 
     .category-panel,
@@ -1191,16 +1234,17 @@ h2 {
     }
 
     .player-card {
-        grid-template-columns: 60px repeat(3, minmax(0, 1fr));
+        grid-template-columns: 54px minmax(100px, 1fr) repeat(3, minmax(38px, 0.42fr));
     }
 
     .rank-crest {
-        width: 54px;
-        height: 54px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
     }
 
     .stat-slice strong {
-        font-size: 20px;
+        font-size: 18px;
     }
 
     .scoreboard {

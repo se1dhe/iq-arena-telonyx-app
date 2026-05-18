@@ -417,11 +417,11 @@ async function loadLeaderboard() {
 }
 
 function renderProfile() {
-    const displayName = player?.displayName || 'Игрок';
+    const displayName = player?.displayName || 'Интеллектор';
     const handle = player?.handle ? `@${player.handle}` : '@telegram';
-    const rating = Number(player?.iqRating || ratingValue.textContent || 1500);
-    const games = Number(player?.gamesPlayed || 0);
-    const wins = Number(player?.wins || 0);
+    const rating = Number(player?.iqRating || (player ? ratingValue.textContent : 2367) || 2367);
+    const games = Number(player?.gamesPlayed || 178);
+    const wins = Number(player?.wins || 128);
     const progress = Math.max(0, Math.min(1000, rating % 1000));
     profileName.textContent = displayName;
     playerCardName.textContent = displayName;
@@ -435,18 +435,18 @@ function renderProfile() {
     ratingValue.textContent = rating;
     winsValue.textContent = wins;
     winrateValue.textContent = games ? `${Math.round((wins / games) * 100)}%` : '0%';
-    streakValue.textContent = player?.streak || '0';
+    streakValue.textContent = player?.streak || '7';
     rankCrest.textContent = rankLabel(rating);
     rankProgress.style.width = `${Math.round((progress / 1000) * 100)}%`;
     rankProgressText.textContent = `${progress} / 1000`;
 }
 
 function rankLabel(rating) {
-    if (rating >= 2600) return 'I';
-    if (rating >= 2300) return 'II';
+    if (rating >= 2600) return 'V';
+    if (rating >= 2300) return 'IV';
     if (rating >= 2000) return 'III';
-    if (rating >= 1600) return 'IV';
-    return 'V';
+    if (rating >= 1600) return 'II';
+    return 'I';
 }
 
 function showView(view) {
