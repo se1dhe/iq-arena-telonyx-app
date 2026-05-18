@@ -1,13 +1,23 @@
 const tg = window.Telegram?.WebApp;
 const statusEl = document.getElementById('status');
 const playBtn = document.getElementById('playBtn');
-const profileBtn = document.getElementById('profileBtn');
+const arenaTab = document.getElementById('arenaTab');
+const leaderboardTab = document.getElementById('leaderboardTab');
+const profileTab = document.getElementById('profileTab');
+const ratingLine = document.getElementById('ratingLine');
 const scoreboardEl = document.getElementById('scoreboard');
 const questionBox = document.getElementById('questionBox');
 const roundLabel = document.getElementById('roundLabel');
 const questionText = document.getElementById('questionText');
 const timerEl = document.getElementById('timer');
 const answersEl = document.getElementById('answers');
+const explanationEl = document.getElementById('explanation');
+const leaderboardPanel = document.getElementById('leaderboardPanel');
+const leaderboardList = document.getElementById('leaderboardList');
+const profilePanel = document.getElementById('profilePanel');
+const profileName = document.getElementById('profileName');
+const profileHandle = document.getElementById('profileHandle');
+const profileReferral = document.getElementById('profileReferral');
 
 let accessToken = null;
 let player = null;
@@ -18,6 +28,7 @@ let currentDeadline = null;
 let timerInterval = null;
 let playersById = new Map();
 let selectedAnswer = null;
+let activeView = 'arena';
 
 function setStatus(text) {
     statusEl.textContent = text;
@@ -51,15 +62,19 @@ async function telegramLogin() {
     const data = await response.json();
     accessToken = data.accessToken;
     player = data;
+    renderProfile();
+    await loadLeaderboard();
     setStatus(`Привет, ${data.displayName}. Готов к дуэли?`);
 }
 
 async function connectRealtime() {
+    showView('arena');
     if (!accessToken || !player) {
         setStatus('Сначала нужна авторизация Telegram Web App.');
         return;
     }
 
+    resetArena();
     playBtn.disabled = true;
     const ticketResponse = await fetch('/v1/realtime/session', {
         method: 'POST',
@@ -72,12 +87,14 @@ async function connectRealtime() {
 
     socket.onopen = () => {
         setStatus('Ищем соперника...');
+        playBtn.textContent = 'Поиск...';
         socket.send(JSON.stringify({ type: 'queue.join', payload: { mode: 'ranked_duel' } }));
     };
 
     socket.onmessage = (event) => handleWsMessage(JSON.parse(event.data));
     socket.onclose = () => {
         playBtn.disabled = false;
+        playBtn.textContent = currentMatchId ? 'Играть еще раз' : 'Найти соперника';
         setStatus('Realtime соединение закрыто.');
         stopTimer();
     };
@@ -89,7 +106,7 @@ function handleWsMessage(message) {
         return;
     }
     if (message.type === 'queue.status') {
-        setStatus('Ты в очереди. Ждем второго игрока...');
+        setStatus(message.payload.status === 'idle' ? 'Поиск остановлен.' : 'Ты в очереди. Если соперника нет, подключим тренировочного.');
         return;
     }
     if (message.type === 'match.found') {
@@ -118,7 +135,7 @@ function handleWsMessage(message) {
         return;
     }
     if (message.type === 'rating.updated') {
-        console.log('rating.updated', message.payload);
+        onRatingUpdated(message.payload);
         return;
     }
     if (message.type === 'error') {
@@ -131,6 +148,7 @@ function handleWsMessage(message) {
 function onMatchFound(payload) {
     currentMatchId = payload.matchId;
     playersById = new Map(payload.players.map(p => [p.playerId, p]));
+    setHidden(ratingLine, true);
     setStatus('Соперник найден. Матч начинается!');
     setHidden(scoreboardEl, false);
     renderScoreboard(payload.players.map(p => ({ playerId: p.playerId, score: 0 })));
@@ -141,6 +159,8 @@ function onRoundOpen(payload) {
     currentDeadline = new Date(payload.deadlineAt).getTime();
     selectedAnswer = null;
     setStatus(`Раунд ${payload.round}. Выбери ответ быстрее соперника.`);
+    setHidden(explanationEl, true);
+    explanationEl.textContent = '';
     setHidden(questionBox, false);
     roundLabel.textContent = `Раунд ${payload.round} · ${payload.category}`;
     questionText.textContent = payload.prompt;
@@ -189,6 +209,10 @@ function onRoundReveal(payload) {
         }
     });
 
+    if (payload.explanation) {
+        explanationEl.textContent = payload.explanation;
+        setHidden(explanationEl, false);
+    }
     renderScoreboard(payload.scoreboard);
 }
 
@@ -205,6 +229,32 @@ function onMatchResult(payload) {
     } else {
         setStatus('Поражение. Реванш?');
     }
+    loadLeaderboard();
+}
+
+function resetArena() {
+    currentMatchId = null;
+    currentRound = null;
+    currentDeadline = null;
+    selectedAnswer = null;
+    playersById = new Map();
+    setHidden(scoreboardEl, true);
+    setHidden(questionBox, true);
+    setHidden(ratingLine, true);
+    scoreboardEl.innerHTML = '';
+    answersEl.innerHTML = '';
+    explanationEl.textContent = '';
+    stopTimer();
+}
+
+function onRatingUpdated(payload) {
+    const row = payload.ratings?.find(r => r.playerId === player?.playerId);
+    if (!row) {
+        return;
+    }
+    const sign = row.delta > 0 ? '+' : '';
+    ratingLine.textContent = `Рейтинг ${row.newRating} (${sign}${row.delta}) · игр: ${row.gamesPlayed}`;
+    setHidden(ratingLine, false);
 }
 
 function renderScoreboard(scoreboard) {
@@ -241,6 +291,51 @@ function lockAnswers() {
     [...answersEl.children].forEach(button => button.disabled = true);
 }
 
+async function loadLeaderboard() {
+    const response = await fetch('/v1/leaderboards/global');
+    if (!response.ok) {
+        leaderboardList.innerHTML = '<div class="empty-state">Топ пока недоступен.</div>';
+        return;
+    }
+    const rows = await response.json();
+    if (!rows.length) {
+        leaderboardList.innerHTML = '<div class="empty-state">Сыграй первый матч и займи место в топе.</div>';
+        return;
+    }
+    leaderboardList.innerHTML = rows.slice(0, 10).map(row => `
+        <div class="leaderboard-row">
+            <strong>${row.rank}</strong>
+            <span>${escapeHtml(row.displayName)}</span>
+            <b>${row.iqRating}</b>
+            <small>${row.gamesPlayed} игр</small>
+        </div>
+    `).join('');
+}
+
+function renderProfile() {
+    if (!player) {
+        profileName.textContent = '—';
+        profileHandle.textContent = '—';
+        profileReferral.textContent = '—';
+        return;
+    }
+    profileName.textContent = player.displayName;
+    profileHandle.textContent = `@${player.handle}`;
+    profileReferral.textContent = player.referralCode || '—';
+}
+
+function showView(view) {
+    activeView = view;
+    arenaTab.classList.toggle('active', view === 'arena');
+    leaderboardTab.classList.toggle('active', view === 'leaderboard');
+    profileTab.classList.toggle('active', view === 'profile');
+    setHidden(scoreboardEl, view !== 'arena' || !currentMatchId);
+    setHidden(questionBox, view !== 'arena' || !currentRound);
+    setHidden(leaderboardPanel, view !== 'leaderboard');
+    setHidden(profilePanel, view !== 'profile');
+    playBtn.classList.toggle('hidden', view !== 'arena');
+}
+
 function escapeHtml(value) {
     return String(value)
         .replaceAll('&', '&amp;')
@@ -251,12 +346,14 @@ function escapeHtml(value) {
 }
 
 playBtn.addEventListener('click', connectRealtime);
-profileBtn.addEventListener('click', () => {
-    if (!player) {
-        setStatus('Профиль появится после Telegram авторизации.');
-        return;
-    }
-    setStatus(`Профиль: @${player.handle}, referral: ${player.referralCode}`);
+arenaTab.addEventListener('click', () => showView('arena'));
+leaderboardTab.addEventListener('click', async () => {
+    showView('leaderboard');
+    await loadLeaderboard();
+});
+profileTab.addEventListener('click', () => {
+    renderProfile();
+    showView('profile');
 });
 
 telegramLogin().catch(() => setStatus('Ошибка запуска Web App.'));

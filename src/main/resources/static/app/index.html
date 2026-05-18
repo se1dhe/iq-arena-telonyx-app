@@ -17,26 +17,41 @@
 
     <main class="card">
         <div id="status" class="status">Готовим арену...</div>
+        <div class="tabs">
+            <button id="arenaTab" class="tab active" type="button">Арена</button>
+            <button id="leaderboardTab" class="tab" type="button">Топ</button>
+            <button id="profileTab" class="tab" type="button">Профиль</button>
+        </div>
+        <div id="ratingLine" class="rating-line hidden"></div>
         <div id="scoreboard" class="scoreboard hidden"></div>
         <div id="questionBox" class="question-box hidden">
             <div id="roundLabel" class="round-label"></div>
             <h2 id="questionText"></h2>
             <div id="timer" class="timer"></div>
             <div id="answers" class="answers"></div>
+            <div id="explanation" class="explanation hidden"></div>
         </div>
-        <button id="playBtn" class="primary">Найти соперника</button>
-        <button id="profileBtn" class="secondary">Профиль</button>
+        <div id="leaderboardPanel" class="panel hidden">
+            <div id="leaderboardList" class="leaderboard-list"></div>
+        </div>
+        <div id="profilePanel" class="panel hidden">
+            <div class="profile-grid">
+                <div>
+                    <span>Имя</span>
+                    <strong id="profileName">—</strong>
+                </div>
+                <div>
+                    <span>Handle</span>
+                    <strong id="profileHandle">—</strong>
+                </div>
+                <div>
+                    <span>Invite</span>
+                    <strong id="profileReferral">—</strong>
+                </div>
+            </div>
+        </div>
+        <button id="playBtn" class="primary" type="button">Найти соперника</button>
     </main>
-
-    <section class="rules">
-        <h2>Правила MVP</h2>
-        <ul>
-            <li>5 вопросов</li>
-            <li>10 секунд на ответ</li>
-            <li>правильный и быстрый ответ дает больше очков</li>
-            <li>рейтинг обновляется после матча</li>
-        </ul>
-    </section>
 </div>
 <script src="/app/app.js"></script>
 </body>
