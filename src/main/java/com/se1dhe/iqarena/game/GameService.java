@@ -15,11 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 // Server-authoritative game engine для MVP 1v1.
 @Service
 @RequiredArgsConstructor
 public class GameService {
+    private static final String BOT_HANDLE = "arena_bot";
+
     private final MatchRepository matchRepository;
     private final MatchRoundRepository roundRepository;
     private final MatchAnswerRepository answerRepository;
@@ -148,6 +151,7 @@ public class GameService {
                 "deadlineAt", deadlineAt.toString()
         );
         sendBoth(match, "round.open", payload);
+        scheduleBotAnswerIfNeeded(match, roundIndex, question.getCorrectIndex(), question.getOptions().size());
 
         taskScheduler.schedule(() -> revealRoundSafe(matchId, roundIndex), deadlineAt.plusMillis(250));
     }
@@ -238,6 +242,52 @@ public class GameService {
             revealRound(matchId, roundIndex, "timeout");
         } catch (Exception ignored) {
             // MVP: не валим scheduler из-за отдельного матча.
+        }
+    }
+
+    private void scheduleBotAnswerIfNeeded(MatchEntity match, int roundIndex, int correctIndex, int optionsCount) {
+        Optional<UUID> botPlayerId = botParticipantId(match);
+        if (botPlayerId.isEmpty()) {
+            return;
+        }
+
+        int answerIndex = botAnswerIndex(correctIndex, optionsCount);
+        long upperDelayMs = Math.max(700, Math.min(6_500, roundSeconds * 1_000L - 1_000));
+        long lowerDelayMs = Math.min(1_200, upperDelayMs);
+        long delayMs = ThreadLocalRandom.current().nextLong(lowerDelayMs, upperDelayMs + 1);
+        UUID matchId = match.getId();
+        UUID playerId = botPlayerId.get();
+
+        taskScheduler.schedule(() -> answerBotSafe(playerId, matchId, roundIndex, answerIndex), Instant.now().plusMillis(delayMs));
+    }
+
+    private Optional<UUID> botParticipantId(MatchEntity match) {
+        if (BOT_HANDLE.equals(match.getPlayerOne().getHandle())) {
+            return Optional.of(match.getPlayerOne().getId());
+        }
+        if (BOT_HANDLE.equals(match.getPlayerTwo().getHandle())) {
+            return Optional.of(match.getPlayerTwo().getId());
+        }
+        return Optional.empty();
+    }
+
+    private int botAnswerIndex(int correctIndex, int optionsCount) {
+        if (optionsCount <= 1 || ThreadLocalRandom.current().nextDouble() < 0.62) {
+            return correctIndex;
+        }
+
+        int selected;
+        do {
+            selected = ThreadLocalRandom.current().nextInt(optionsCount);
+        } while (selected == correctIndex);
+        return selected;
+    }
+
+    private void answerBotSafe(UUID playerId, UUID matchId, int roundIndex, int selectedIndex) {
+        try {
+            answer(playerId, matchId, roundIndex, selectedIndex);
+        } catch (Exception ignored) {
+            // Bot opponent is best-effort; timeout reveal will still finish the round.
         }
     }
 
