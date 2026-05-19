@@ -26,6 +26,7 @@ public class SecurityConfig {
                                 "/ws",
                                 "/actuator/health",
                                 "/actuator/info",
+                                "/actuator/prometheus",
                                 "/v1/auth/**",
                                 "/v1/config/public",
                                 "/v1/leaderboards/global",

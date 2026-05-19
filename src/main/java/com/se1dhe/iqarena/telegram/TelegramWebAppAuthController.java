@@ -1,6 +1,7 @@
 package com.se1dhe.iqarena.telegram;
 
 import com.se1dhe.iqarena.domain.Player;
+import com.se1dhe.iqarena.events.PlayerActivityEvents;
 import com.se1dhe.iqarena.security.JwtService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -17,11 +18,13 @@ public class TelegramWebAppAuthController {
     private final TelegramInitDataVerifier verifier;
     private final TelegramPlayerService playerService;
     private final JwtService jwtService;
+    private final PlayerActivityEvents playerActivityEvents;
 
     @PostMapping("/webapp")
     public TelegramAuthResponse webApp(@Valid @RequestBody TelegramAuthRequest request) {
         VerifiedTelegramUser telegramUser = verifier.verify(request.initData());
         Player player = playerService.upsertFromTelegram(telegramUser, request.referralCode());
+        playerActivityEvents.authenticated(player.getId(), player.getHandle(), "telegram_webapp");
         String accessToken = jwtService.issueAccessToken(player.getId());
 
         return new TelegramAuthResponse(

@@ -3,6 +3,22 @@ info:
   title: IQ Arena Realtime API
   version: 0.1.0
 channels:
+  domainEvents:
+    address: iq-arena.domain-events
+    messages:
+      matchCreated:
+        $ref: "#/components/messages/MatchCreated"
+      matchCompleted:
+        $ref: "#/components/messages/MatchCompleted"
+      playerAuthenticated:
+        $ref: "#/components/messages/PlayerAuthenticated"
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: iq-arena.domain-events
+          type: topic
+          durable: true
   arenaWs:
     address: /ws
     messages:
@@ -33,4 +49,85 @@ components:
     MatchResult:
       payload:
         type: object
-
+    MatchCreated:
+      payload:
+        type: object
+        required:
+          - matchId
+          - playerOneId
+          - playerTwoId
+          - category
+          - startedAt
+        properties:
+          matchId:
+            type: string
+            format: uuid
+          playerOneId:
+            type: string
+            format: uuid
+          playerTwoId:
+            type: string
+            format: uuid
+          rounds:
+            type: integer
+          roundSeconds:
+            type: integer
+          category:
+            type: string
+          startedAt:
+            type: string
+            format: date-time
+    MatchCompleted:
+      payload:
+        type: object
+        required:
+          - matchId
+          - playerOneId
+          - playerTwoId
+          - playerOneScore
+          - playerTwoScore
+          - tiebreak
+          - completedAt
+        properties:
+          matchId:
+            type: string
+            format: uuid
+          playerOneId:
+            type: string
+            format: uuid
+          playerTwoId:
+            type: string
+            format: uuid
+          winnerPlayerId:
+            type: string
+          playerOneScore:
+            type: integer
+          playerTwoScore:
+            type: integer
+          tiebreak:
+            type: string
+          completedAt:
+            type: string
+            format: date-time
+    PlayerAuthenticated:
+      payload:
+        type: object
+        required:
+          - playerId
+          - handle
+          - source
+          - authenticatedAt
+        properties:
+          playerId:
+            type: string
+            format: uuid
+          handle:
+            type: string
+          source:
+            type: string
+            enum:
+              - dev
+              - telegram_webapp
+          authenticatedAt:
+            type: string
+            format: date-time

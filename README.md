@@ -12,6 +12,8 @@ IQ Arena — PvP-викторина 1v1, где вся игра проходит
 - realtime через WebSocket
 - PostgreSQL для игроков, вопросов, матчей и рейтинга
 - Redis для очередей, presence, matchmaking и временных состояний
+- RabbitMQ как брокер доменных событий для analytics/liveops/retention интеграций
+- PostgreSQL transactional outbox для надежной доставки событий
 
 ## Почему Telegram-first
 
@@ -41,6 +43,7 @@ IQ Arena — PvP-викторина 1v1, где вся игра проходит
 - Spring Boot 3.5
 - PostgreSQL
 - Redis
+- RabbitMQ
 - Flyway
 - JWT / Telegram initData auth
 - Raw WebSocket `/ws`
@@ -51,7 +54,7 @@ IQ Arena — PvP-викторина 1v1, где вся игра проходит
 ## Быстрый старт
 
 ```bash
-docker compose up -d postgres redis
+docker compose up -d postgres redis rabbitmq
 mvn spring-boot:run
 ```
 
@@ -60,6 +63,19 @@ Healthcheck:
 ```bash
 curl http://localhost:8080/actuator/health
 ```
+
+Prometheus metrics:
+
+```bash
+curl http://localhost:8080/actuator/prometheus
+```
+
+Every HTTP response includes `X-Correlation-Id`. Pass the same header from clients to trace a request across JSON errors and application logs.
+Sensitive auth and realtime session endpoints are protected by Redis-backed rate limiting.
+Validation errors use a unified JSON shape with `code`, `message`, `timestamp`, `correlationId`, and `violations`.
+Matchmaking exposes Prometheus metrics for queue size and wait time under `iqarena.matchmaking.*`.
+Logs are emitted as JSON and include MDC fields such as `correlationId`.
+OpenTelemetry tracing is enabled through Micrometer Tracing and exports OTLP traces to `MANAGEMENT_OTLP_TRACING_ENDPOINT`.
 
 Dev login:
 
@@ -120,6 +136,10 @@ Required service variables:
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
 - `SPRING_DATA_REDIS_URL`
+- `SPRING_RABBITMQ_HOST`
+- `SPRING_RABBITMQ_PORT`
+- `SPRING_RABBITMQ_USERNAME`
+- `SPRING_RABBITMQ_PASSWORD`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_BOT_USERNAME`
 - `TELEGRAM_WEBAPP_URL`

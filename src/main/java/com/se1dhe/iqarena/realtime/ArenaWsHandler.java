@@ -3,6 +3,8 @@ package com.se1dhe.iqarena.realtime;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.se1dhe.iqarena.game.GameService;
 import com.se1dhe.iqarena.matchmaking.MatchmakingService;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
@@ -21,6 +23,7 @@ public class ArenaWsHandler extends TextWebSocketHandler {
     private final WsSender wsSender;
     private final MatchmakingService matchmakingService;
     private final GameService gameService;
+    private final ObservationRegistry observationRegistry;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -35,31 +38,41 @@ public class ArenaWsHandler extends TextWebSocketHandler {
         var root = objectMapper.readTree(message.getPayload());
         String type = root.path("type").asText();
         var payload = root.path("payload");
+        Observation observation = Observation.createNotStarted("iqarena.ws.inbound", observationRegistry)
+                .lowCardinalityKeyValue("event.type", type);
+        observation.start();
 
-        if ("ping".equals(type)) {
-            wsSender.send(session, "pong", Map.of("serverTime", Instant.now().toString()));
-            return;
+        try (Observation.Scope ignored = observation.openScope()) {
+            if ("ping".equals(type)) {
+                wsSender.send(session, "pong", Map.of("serverTime", Instant.now().toString()));
+                return;
+            }
+
+            if ("queue.join".equals(type)) {
+                matchmakingService.join(playerId, payload.path("category").asText("mixed"));
+                return;
+            }
+
+            if ("queue.leave".equals(type)) {
+                matchmakingService.leave(playerId);
+                return;
+            }
+
+            if ("round.answer".equals(type)) {
+                UUID matchId = UUID.fromString(payload.path("matchId").asText());
+                int round = payload.path("round").asInt();
+                int selectedIndex = payload.path("selectedIndex").asInt();
+                gameService.answer(playerId, matchId, round, selectedIndex);
+                return;
+            }
+
+            wsSender.send(session, "error", Map.of("code", "UNKNOWN_EVENT", "message", "Неизвестное событие: " + type));
+        } catch (Exception ex) {
+            observation.error(ex);
+            throw ex;
+        } finally {
+            observation.stop();
         }
-
-        if ("queue.join".equals(type)) {
-            matchmakingService.join(playerId, payload.path("category").asText("mixed"));
-            return;
-        }
-
-        if ("queue.leave".equals(type)) {
-            matchmakingService.leave(playerId);
-            return;
-        }
-
-        if ("round.answer".equals(type)) {
-            UUID matchId = UUID.fromString(payload.path("matchId").asText());
-            int round = payload.path("round").asInt();
-            int selectedIndex = payload.path("selectedIndex").asInt();
-            gameService.answer(playerId, matchId, round, selectedIndex);
-            return;
-        }
-
-        wsSender.send(session, "error", Map.of("code", "UNKNOWN_EVENT", "message", "Неизвестное событие: " + type));
     }
 
     @Override

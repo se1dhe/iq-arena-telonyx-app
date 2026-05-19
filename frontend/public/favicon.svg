@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IQ Arena">
+  <rect width="64" height="64" rx="16" fill="#07090f"/>
+  <path d="M18 43V21h7v22h-7Zm13 0V21h10.5c5.8 0 10.5 4.6 10.5 10.4 0 3.9-2.1 7.3-5.2 9.1l5.4 2.5H41.8l-3.9-1.9H38c-2.4 0-4.7-.8-6.5-2.2V43H31Zm7-8.1h3.3c2 0 3.7-1.6 3.7-3.5s-1.7-3.5-3.7-3.5H38v7Z" fill="#f4efe4"/>
+  <path d="M16 49h32" stroke="#72f2d0" stroke-width="3" stroke-linecap="round"/>
+  <path d="M46 15h4v4" stroke="#ffcf6a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -4,3 +4,6 @@ target/
 .env
 .DS_Store
 .vscode/
+*.tsbuildinfo
+frontend/node_modules/
+frontend/.vite/

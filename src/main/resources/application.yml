@@ -26,7 +26,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+  tracing:
+    enabled: ${MANAGEMENT_TRACING_ENABLED:true}
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
 
 app:
   public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8080}
@@ -39,6 +46,32 @@ app:
   game:
     rounds: 5
     round-seconds: 10
+  matchmaking:
+    bot-wait-seconds: ${APP_MATCHMAKING_BOT_WAIT_SECONDS:4}
+    redis:
+      queue-key: ${APP_MATCHMAKING_REDIS_QUEUE_KEY:iq-arena:matchmaking:queue}
+      category-key: ${APP_MATCHMAKING_REDIS_CATEGORY_KEY:iq-arena:matchmaking:category}
+      lock-key: ${APP_MATCHMAKING_REDIS_LOCK_KEY:iq-arena:matchmaking:lock}
+      lock-ttl-ms: ${APP_MATCHMAKING_REDIS_LOCK_TTL_MS:3000}
+      stale-after-seconds: ${APP_MATCHMAKING_REDIS_STALE_AFTER_SECONDS:60}
+  outbox:
+    rabbit:
+      enabled: ${APP_OUTBOX_RABBIT_ENABLED:true}
+      exchange: ${APP_OUTBOX_RABBIT_EXCHANGE:iq-arena.domain-events}
+      routing-key-prefix: ${APP_OUTBOX_RABBIT_ROUTING_KEY_PREFIX:iq-arena}
+      fixed-delay-ms: ${APP_OUTBOX_RABBIT_FIXED_DELAY_MS:2000}
+      max-attempts: ${APP_OUTBOX_RABBIT_MAX_ATTEMPTS:8}
+      retry-backoff-seconds: ${APP_OUTBOX_RABBIT_RETRY_BACKOFF_SECONDS:5}
+      confirm-timeout-ms: ${APP_OUTBOX_RABBIT_CONFIRM_TIMEOUT_MS:5000}
+  rate-limit:
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    max-requests: ${APP_RATE_LIMIT_MAX_REQUESTS:60}
+    window-seconds: ${APP_RATE_LIMIT_WINDOW_SECONDS:60}
+    key-prefix: ${APP_RATE_LIMIT_KEY_PREFIX:iq-arena:rate-limit}
+    protected-paths:
+      - /v1/auth/
+      - /v1/realtime/session/
+      - /v1/telegram/
 
 telegram:
   bot:

@@ -2,6 +2,7 @@ package com.se1dhe.iqarena.game;
 
 import com.se1dhe.iqarena.domain.Player;
 import com.se1dhe.iqarena.domain.Question;
+import com.se1dhe.iqarena.events.DomainEventPublisher;
 import com.se1dhe.iqarena.repo.QuestionRepository;
 import com.se1dhe.iqarena.realtime.WsSender;
 import com.se1dhe.iqarena.repo.PlayerRepository;
@@ -33,6 +34,7 @@ public class GameService {
     private final RatingService ratingService;
     private final WsSender wsSender;
     private final TaskScheduler taskScheduler;
+    private final DomainEventPublisher eventPublisher;
 
     // Защита от двойного reveal, когда оба игрока ответили почти одновременно или сработал timer.
     private final Set<String> revealedRounds = ConcurrentHashMap.newKeySet();
@@ -76,6 +78,15 @@ public class GameService {
 
         wsSender.sendToPlayer(playerOneId, "match.found", payload);
         wsSender.sendToPlayer(playerTwoId, "match.found", payload);
+        eventPublisher.publish("match", match.getId(), "MATCH_CREATED", Map.of(
+                "matchId", match.getId().toString(),
+                "playerOneId", playerOneId.toString(),
+                "playerTwoId", playerTwoId.toString(),
+                "rounds", rounds,
+                "roundSeconds", roundSeconds,
+                "category", normalizedCategory,
+                "startedAt", match.getStartedAt().toString()
+        ));
 
         openRound(match.getId(), 1);
         return match.getId();
@@ -251,6 +262,16 @@ public class GameService {
         sendBoth(match, "rating.updated", Map.of(
                 "matchId", matchId.toString(),
                 "ratings", ratingUpdates
+        ));
+        eventPublisher.publish("match", matchId, "MATCH_COMPLETED", Map.of(
+                "matchId", matchId.toString(),
+                "playerOneId", match.getPlayerOne().getId().toString(),
+                "playerTwoId", match.getPlayerTwo().getId().toString(),
+                "winnerPlayerId", winnerId == null ? "" : winnerId.toString(),
+                "playerOneScore", match.getPlayerOneScore(),
+                "playerTwoScore", match.getPlayerTwoScore(),
+                "tiebreak", tiebreak.reason(),
+                "completedAt", match.getCompletedAt().toString()
         ));
     }
 

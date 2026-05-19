@@ -1,6 +1,7 @@
 package com.se1dhe.iqarena.auth;
 
 import com.se1dhe.iqarena.domain.Player;
+import com.se1dhe.iqarena.events.PlayerActivityEvents;
 import com.se1dhe.iqarena.repo.PlayerRepository;
 import com.se1dhe.iqarena.security.JwtService;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import java.util.Locale;
 public class AuthController {
     private final PlayerRepository playerRepository;
     private final JwtService jwtService;
+    private final PlayerActivityEvents playerActivityEvents;
 
     @PostMapping("/dev/login")
     public AuthResponse devLogin(@Valid @RequestBody DevLoginRequest request) {
@@ -29,6 +31,7 @@ public class AuthController {
             return playerRepository.save(p);
         });
 
+        playerActivityEvents.authenticated(player.getId(), player.getHandle(), "dev");
         return new AuthResponse(jwtService.issueAccessToken(player.getId()), "Bearer",
                 player.getId().toString(), player.getHandle(), player.getDisplayName());
     }
