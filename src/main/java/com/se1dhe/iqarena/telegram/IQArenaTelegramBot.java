@@ -37,6 +37,7 @@ public class IQArenaTelegramBot implements ApplicationRunner {
     private final String token;
     private final String username;
     private final String webAppUrl;
+    private final boolean longPollingEnabled;
     private TelegramBotsLongPollingApplication botsApplication;
     private TelegramClient telegramClient;
     private BotSession botSession;
@@ -44,17 +45,23 @@ public class IQArenaTelegramBot implements ApplicationRunner {
     public IQArenaTelegramBot(
             @Value("${telegram.bot.token}") String token,
             @Value("${telegram.bot.username}") String username,
-            @Value("${telegram.webapp.url}") String webAppUrl
+            @Value("${telegram.webapp.url}") String webAppUrl,
+            @Value("${telegram.bot.long-polling-enabled:false}") boolean longPollingEnabled
     ) {
         this.token = token;
         this.username = username;
         this.webAppUrl = webAppUrl;
+        this.longPollingEnabled = longPollingEnabled;
     }
 
     @Override
     public void run(ApplicationArguments args) {
         if (token == null || token.isBlank() || "replace-me".equals(token)) {
             log.warn("Telegram bot token is not configured; long polling is disabled");
+            return;
+        }
+        if (!longPollingEnabled) {
+            log.info("Telegram long polling is disabled by configuration");
             return;
         }
 

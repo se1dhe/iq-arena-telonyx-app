@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: iq-arena
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/iqarena}
     username: ${SPRING_DATASOURCE_USERNAME:iqarena}
@@ -28,12 +31,15 @@ management:
       exposure:
         include: health,info,prometheus
   tracing:
-    enabled: ${MANAGEMENT_TRACING_ENABLED:true}
+    enabled: ${MANAGEMENT_TRACING_ENABLED:false}
     sampling:
       probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
   otlp:
     tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:}
+  health:
+    rabbit:
+      enabled: ${MANAGEMENT_HEALTH_RABBIT_ENABLED:false}
 
 app:
   public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8080}
@@ -56,7 +62,7 @@ app:
       stale-after-seconds: ${APP_MATCHMAKING_REDIS_STALE_AFTER_SECONDS:60}
   outbox:
     rabbit:
-      enabled: ${APP_OUTBOX_RABBIT_ENABLED:true}
+      enabled: ${APP_OUTBOX_RABBIT_ENABLED:false}
       exchange: ${APP_OUTBOX_RABBIT_EXCHANGE:iq-arena.domain-events}
       routing-key-prefix: ${APP_OUTBOX_RABBIT_ROUTING_KEY_PREFIX:iq-arena}
       fixed-delay-ms: ${APP_OUTBOX_RABBIT_FIXED_DELAY_MS:2000}
@@ -77,5 +83,6 @@ telegram:
   bot:
     token: ${TELEGRAM_BOT_TOKEN:replace-me}
     username: ${TELEGRAM_BOT_USERNAME:iq_arena_bot}
+    long-polling-enabled: ${TELEGRAM_BOT_LONG_POLLING_ENABLED:false}
   webapp:
     url: ${TELEGRAM_WEBAPP_URL:http://localhost:8080/app}
