@@ -15,7 +15,7 @@
         <spring-boot.version>3.5.0</spring-boot.version>
         <jjwt.version>0.12.6</jjwt.version>
         <telegrambots.version>9.5.0</telegrambots.version>
-        <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
+        <logstash-logback-encoder.version>9.0</logstash-logback-encoder.version>
     </properties>
 
     <dependencyManagement>
